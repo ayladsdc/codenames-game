@@ -9,8 +9,6 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.Socket;
 
-import javax.management.relation.Role;
-
 //USANDO REF https://docs.oracle.com/javase/tutorial/networking/sockets/readingWriting.html?utm_source=gemini 
 
 // visão do servidro sobre o player, guarda o socket
@@ -21,10 +19,10 @@ public class Player {
     private final PrintWriter out;
     private Cargo cargo;
 
-    public Player(Socket socket){
+    public Player(Socket socket) throws IOException{
         this.socket = socket;
         this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        this.out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), true));
+        this.out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
     }
 
     public Socket getSocket() {
@@ -43,12 +41,12 @@ public class Player {
         out.println(msg);
     }
 
-     /** Bloqueia até chegar uma linha do cliente (ou null se ele desconectou). */
+     //Bloqueia até chegar uma linha do cliente (ou null se ele desconectou). 
     public String recebe() throws IOException {
         return in.readLine();
     }
 
-    public void close() {
+    public void Fechar() {
         try {
             socket.close();
         } catch (IOException ignored) {
