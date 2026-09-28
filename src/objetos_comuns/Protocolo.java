@@ -26,6 +26,17 @@ public class Protocolo {
     }  
 
     public static class Servidor {
-        
+        public static final String INFO = "INFO"; 
+        public static final String BEM_VINDO = "BEM_VINDO";
+        public static final String CARGO_OCUPADO = "CARGO_OCUPADO";
+        public static final String TABULEIRO_AGENTE = "TABULEIRO_AGENTE";
+        public static final String TABULEIRO_MESTRE = "TABULEIRO_MESTRE";
+        public static final String VEZ_DICA = "VEZ_DICA";
+        public static final String DICA_DADA = "DICA_DADA";
+        public static final String VEZ_PALPITE = "VEZ_PALPITE";
+        public static final String REVELAR = "REVELAR";
+        public static final String FIM_TURNO = "FIM_TURNO";
+        public static final String FIM_DE_JOGO = "FIM_DE_JOGO";
+        public static final String ERRO = "ERRO";
     }
 }

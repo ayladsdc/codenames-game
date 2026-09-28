@@ -138,7 +138,7 @@ public class Tabuleiro {
 
 
 public static void main(String[] args) {
-    Tabuleiro tabuleiro = new Tabuleiro();
+    //Tabuleiro tabuleiro = new Tabuleiro();
 
     // System.out.print("Visão mestre------------------");
     // System.out.print(tabuleiro.visaoMestre());
