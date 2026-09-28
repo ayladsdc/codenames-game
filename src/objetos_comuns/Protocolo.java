@@ -18,7 +18,7 @@ public class Protocolo {
 
     private Protocolo(){}
 
-    public static class Client {
+    public static class Cliente {
         public static final String CARGO = "CARGO";
         public static final String DICA  = "DICA";
         public static final String CHUTE = "CHUTE";
