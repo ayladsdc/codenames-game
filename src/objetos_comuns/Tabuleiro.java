@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Random; // uso do nextRandom, mostrada aqui (https://www.devmedia.com.br/numeros-aleatorios-em-java-a-classe-java-util-random/26355)
 
 public class Tabuleiro {
-    public static int tamanhoTabuleiro = 25;
+    public static final int tamanhoTabuleiro = 25;
 
     private List <Carta> cartasJogo = new ArrayList<>();
     private final CorCarta TimeInicio;
@@ -36,7 +36,7 @@ public class Tabuleiro {
     }
 
     /**procura e retorna a carta pelo numero de sua posição, null se n achar  */
-    public Carta AcharPeloNumero(int numero) {
+    public Carta acharPeloNumero(int numero) {
         for (Carta c : cartasJogo) {
             if (c.getPosicao() == numero) {
                 return c;
@@ -45,8 +45,18 @@ public class Tabuleiro {
         return null;
     }
 
+    /**Procura a carta, se ela existir e ainda não tiver sido revelada, revela. Se não, da erro/aviso */
+    public Carta revelar(int num){
+        Carta c = acharPeloNumero(num);
+        if(c!= null && !c.estaRevelada()){
+            c.revelar();
+            return c;
+        }
+        return null; // tratar isso -> erro, carta não existente ou já revelada
+    }
+
     /** Quantas cartas dessa cor ainda não foram reveladas. */
-    public int CartasRestantes(CorCarta cor) {
+    public int cartasRestantes(CorCarta cor) {
         int qtd = 0;
         for (Carta c : cartasJogo) {
             if (c.getCor() == cor && !c.estaRevelada()) {

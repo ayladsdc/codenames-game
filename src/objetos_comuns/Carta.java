@@ -29,7 +29,7 @@ public class Carta {
         return revelada;
     }
 
-    public void relevarCartas() {
+    public void revelar() {
         this.revelada = true;
     }
 }

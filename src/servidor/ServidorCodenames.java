@@ -106,14 +106,15 @@ public class ServidorCodenames {
                     player.enviar(Protocolo.Servidor.CARGO_OCUPADO + " " + resquisitado);
                 } else {
                     escolha = resquisitado;
+                    // atauliza as vars e coloca o player no map
+                    player.setCargo(escolha);
+                    disponivel.remove(escolha);
+                    players.put(escolha, player);
+                    player.enviar(Protocolo.Servidor.BEM_VINDO + " " + escolha);
+                    System.out.println(escolha + " conectado (" + (4 - disponivel.size()) + "/4).");
                 }
 
-                // atauliza as vars e coloca o player no map
-                player.setCargo(escolha);
-                disponivel.remove(escolha);
-                players.put(escolha, player);
-                player.enviar(Protocolo.Servidor.BEM_VINDO + " " + escolha);
-                System.out.println(escolha + " conectado (" + (4 - disponivel.size()) + "/4).");
+                
 
             } else {
                 player.enviar((Protocolo.Servidor.ERRO + " Comando invalido. Use: " + Protocolo.Cliente.CARGO + " <NOME>"));
