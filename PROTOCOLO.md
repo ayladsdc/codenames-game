@@ -13,29 +13,53 @@
 - Comandos devem vir como maiúsculas, e argumentos separados com somente um espaço
 - Palavras com espaço PRECISAM estar com '_' ao invés do espaço. Por exemplo 'SANCHO PANÇA' deve estar como 'SANCHO_PANÇA'
 - Linhas vazias serão respondidas com 'ERRO linha_vazia' e comandos inválidos com 'ERRO comando_desconhecido'
-- Erros serão respondidos com argumentos, sem acento e com '_' no lugar de espaços. Eles não encerram conexão e só vão para quem enviou comandos errados
+- Erros serão respondidos com argumentos (palavra, em minúsculas, sem acento, com _ no lugar de espaços). Eles não encerram a conexão com os jogaodores e só vão para quem enviou os comandos errados
+
+# Dicionário
+- Cor da carta: 'VERMELHA', 'AZUL', 'NEUTRA', 'ASSASSINA'
+- Time: 'VERMELHO', 'AZUL' (é o prefixo dos cargos)
+- Cargo: 'VERMELHO_MESTREESPIAO', 'VERMELHO_AGENTE', 'AZUL_MESTREESPIAO', 'AZUL_AGENTE'
+- Posição: inteiro de 1 a 25 (numeração descrita em Chutes)
+- Palavra: texto em UTF-8, em maiúsculas, com '_' no lugar do espaço (ex.: 'JET_SKI', 'SANCHO_PANÇA')
+- Número da dica: inteiro de 1 a 9
 
 # Cargos
 - Deverão ser informados do cliente -> servidor durante o lobby antes de iniciar a partida
 - Estrutura: 'CARGO <NOME_DO_CARGO>'
 - Cargos disponíveis: 'VERMELHO_MESTREESPIAO', 'VERMELHO_AGENTE', 'AZUL_MESTREESPIAO', 'AZUL_AGENTE'
 - Exemplos: 'CARGO VERMELHO_AGENTE', 'CARGO AZUL_MESTREESPIAO'
+- Mensagem de sucesso recebida: 'JOGO bem_vindo <cargo>' 
 - Erros: 
-    - 'ERRO cargo_invalido' (provavelmente esqueceu o _, errou a escrita ou cargo não existe), 
+    - 'ERRO cargo_invalido' (provavelmente esqueceu o _, errou a escrita ou cargo não existe) 
     - 'ERRO fora_de_hora' (partida já iniciada ou já encerrada)
     - 'ERRO cargo_ocupado <cargo>' (cargo já escolhido)
+    - 'ERRO cargo_ja_escolhido' (jogador já tem cargo e manda novamente)
+    - 'ERRO argumentos_invalidos'
+
+# Lobby
+- Ao conectar, o servidor deve enviar 'CARGOS_LIVRES' só para o novo cliente
+- 'CARGOS_LIVRES' também é enviada a todos que ainda estão no lobby sempre que um cargo é ocupado ou liberado
+- Estrutura: 'CARGOS_LIVRES <cargo1> <cargo2> ...'
+- Exemplo: 'CARGOS_LIVRES VERMELHO_MESTREESPIAO AZUL_AGENTE'
+- Depois de 'ERRO cargo_ocupado' ou 'ERRO cargo_invalido' o jogador continua no lobby e pode mandar 'CARGO' de novo
+- Se dois jogadores pedem o mesmo cargo ao mesmo tempo, o servidor atende o primeiro que processar, e o outro recebe 'ERRO cargo_ocupado <cargo>'
+- Um jogador que já tem cargo e envia 'CARGO' de novo recebe 'ERRO cargo_ja_escolhido'
+- Quando um jogador cai no lobby, o cargo dele é liberado e 'CARGOS_LIVRES' é reenviada
+- Conexão rejeitada ('ERRO partida_cheia'): o servidor envia o erro e em seguida fecha a conexão
 
 # Chutes
 - Informado do cliente -> servidor, sendo o agente do time da rodada
 - Estrutura: 'CHUTE <posicao>' (1 a 25, que é número de cartas no tabuleiro)
 - Numeração: O tabuleiro tem 5 linhas tal como uma matriz com as linhas [1,2,3,4,5] , [6,7,8,9,10] , [11,12,13,14,15] , [16,17,18,19,20] , [21,22,23,24,25]. Cada um desses números é a posição dos chutes
 - Exemplo: 'CHUTE 9'
+- Mensagem de sucesso recebida: 'JOGO chute_valido'
 - Erros: 
-    - 'ERRO fora_de_vez' (caso mandado fora do turno, enquanto é dada a dica ou a partida não fora iniciada)
+    - 'ERRO fora_de_vez' (caso mandado fora do turno ou enquanto é dada a dica ou)
+    - 'ERRO fora_de_hora' (partida não iniciada)
     - 'ERRO carta_ja_revelada'
     - 'ERRO posicao_invalida' (numero menor que 1 ou maior que 25)
     - 'ERRO papel_invalido'
-    - 'ERRO argumentos_invalidos' (não foi valor int)
+    - 'ERRO argumentos_invalidos' (não seguiu o padrão de só um número int)
 
 # Passa
 - Informado de cliente -> servidor, por agentes e na fase de palpite. Pode ser depois de alguns chutes ou logo de cara no turno de palpites
@@ -43,15 +67,16 @@
 - Estrutura: 'PASSA'
 - Exemplo: 'PASSA'
 - Erros: 
-    - 'ERRO fora_de_vez' (caso mandado fora do turno, enquanto é dada a dica ou a partida não fora iniciada)
+    - 'ERRO fora_de_vez' (caso mandado fora do turno ou enquanto é dada a dica)
+    - 'ERRO fora_de_hora' (se a partida não foi iniciada)
     - 'ERRO papel_invalido'
+    - 'ERRO argumentos_invalidos'
 
 # Revelar Carta
 - Logo após o chute válido, servidor -> todos os jogadores (incluindo quem chutou) com a cor da carta do chute
 - Estrutura: 'REVELAR <posicao> <cor>'
 - Argumentos: <posicao> é de 1-25, e cor são de 4 tipos: 'VERMELHA', 'AZUL', 'NEUTRA', 'ASSASSINA'
 - Exemplo: 'REVELAR 9 VERMELHA'
-- Resposta de sucesso dos jogadores para o servidor: 'REVELAR sucesso'
 
 # Fases Jogo
 - LOBBY: do início da conexão até todos os 4 cargos estarem ocupados
@@ -60,9 +85,19 @@
 - FIM: depois do 'JOGO encerrado'
 - Mensagens aceitas (cliente -> servidor) em cada fase:
     - LOBBY: 'CARGO <NOME_DO_CARGO>'
-    - DICA: 'DICA <dica>'
+    - DICA: 'DICA <palavra> <numero>'
     - PALPITE: 'CHUTE <posicao>', 'PASSA'
     - FIM: (nada)
+- 'ERRO fora_de_hora': a mensagem não pertence à fase maior em que o jogo está (LOBBY, jogo em andamento ou FIM). Exemplos: 'CARGO' com a partida em andamento; 'CHUTE', 'PASSA' ou 'DICA' no LOBBY ou depois do FIM
+- 'ERRO fora_de_vez': a fase maior está certa, mas a mensagem não é da subfase atual (DICA ou PALPITE) ou o jogador não é do time da vez. Exemplos: 'CHUTE' enquanto o mestre ainda dá a dica, 'DICA' enquanto os agentes chutam, 'CHUTE' do agente do outro time
+- Quando mais de um erro se aplica à mesma mensagem, o servidor responde só o primeiro desta lista:
+    1. 'linha_longa' e 'linha_vazia'
+    2. 'comando_desconhecido'
+    3. 'fora_de_hora'
+    4. 'papel_invalido'
+    5. 'fora_de_vez'
+    6. 'argumentos_invalidos'
+    7. erros específicos do comando ('cargo_invalido', 'cargo_ocupado', 'cargo_ja_escolhido', 'posicao_invalida', 'carta_ja_revelada', 'dica_invalida', 'numero_invalido')
 
 # Dica
 - Informado de cliente -> servidor, pelo mestre do time da vez e na fase de dica
@@ -94,12 +129,6 @@
 - Regra de segurança: o servidor nunca envia a um agente a cor de uma carta oculta, em nenhuma mensagem
 - Depois do envio inicial, o cliente mantém o tabuleiro e o atualiza a cada 'REVELAR'. O servidor não reenvia o tabuleiro durante a partida
 - No fim da partida o servidor envia 'TABULEIRO_FINAL <carta1> ... <carta25>', no mesmo formato do mestre, para todos os jogadores. É a única exceção à regra de segurança, já que o jogo já acabou.
-- Placar
-   - Direção: servidor -> todos
-   - Estrutura: 'PLACAR <vermelho_restantes> <azul_restantes>'
-   - Os valores são o número de cartas de cada time que ainda não foram reveladas
-   - Exemplo: 'PLACAR 8 8'
-   - Enviado uma vez no início do jogo (depois dos tabuleiros) e depois de cada 'REVELAR'
 
 # Placar
 - É feito de servidor -> todos, no começo do jogo (depois dos tabuleiros) e depois de cada 'REVELAR'
@@ -110,8 +139,8 @@
 # Turnos
 - Enviadas de servidor -> todos os jogadores. Cada cliente decide o que mostrar a partir do próprio cargo
 - 'VEZ_DICA <time>': começa a fase de dica.
-- 'DICA_DADA <palavra> <numero>': repassa a dica aceita para os agentes.
-- 'VEZ_PALPITE <time> <palpites_restantes>': começa (ou continua) a fase de palpite. Só o agente desse time pode enviar 'CHUTE' ou 'PASSA'. Isso aqui acontece depois de 'DICA_DADA' com número + 1 palpites. Depois de cada acerto que não é encerrado o turno, é apenas descontedo um palpite . Exemplo: 'VEZ_PALPITE VERMELHO 3'
+- 'DICA_DADA <palavra> <numero>': repassa a dica aceita para todos.
+- 'VEZ_PALPITE <time> <palpites_restantes>': começa (ou continua) a fase de palpite. Só o agente desse time pode enviar 'CHUTE' ou 'PASSA'. Isso aqui acontece depois de 'DICA_DADA' com número + 1 palpites. Depois de cada acerto que não encerra o turno, é apenas descontado um palpite. Exemplo: 'VEZ_PALPITE VERMELHO 3'
 - 'FIM_TURNO <motivo> <proximo_time>': encerra o turno. Sempre seguida de 'VEZ_DICA <proximo_time>'. Exemplo: 'FIM_TURNO errou AZUL'
     - motivo 'errou': a carta revelada era neutra ou do time adversário
     - motivo 'passou': o agente enviou 'PASSA'
@@ -120,7 +149,7 @@
 - Para 'PASSA', a sequência é 'FIM_TURNO passou <proximo_time>' e 'VEZ_DICA <proximo_time>'
 
 # Fim de jogo
-- O jogo termina quando um time consegue todas as suas cartas ou quando um agente escolhe a carta assassina
+- O jogo termina quando um time consegue todas as suas cartas ou quando um agente escolhe a carta assassina. Adendo: um time também pode, sem querer, pegar a última carta do seu adversário, fazendo o outro ganhar.
 - Revelar a carta assassina faz perder o time de quem chutou
 - Direção: servidor -> todos
 - Estrutura: 'VENCEDOR <time> <motivo>'
@@ -143,8 +172,99 @@
 
 # Jogo
 - Quando todos os 4 jogadores já estiverem conectados e todos tiverem escolhido seus cargos, o servidor inicia o jogo enviando 'JOGO iniciado'
-- Assim que algum time tenha conseguido todas as cartas certas ou algum deles tenha escolhido a carta assassina, o jogo é automaticamente encerrado com o servidor enviando 'JOGO encerrado'
+- Sequência de comandos:
+    - Enviar CARGOS_LIVRES para todos os do lobby até todos terem escolhido
+    - 'JOGO iniciado'
+    - Para os Mestres: 'TABULEIRO_MESTRE <carta1> ... <carta25>'
+    - Para os Agentes: 'TABULEIRO_AGENTE <carta1> ... <carta25>'
+    - 'PLACAR <vermelho_restantes> <azul_restantes>'
+    - Loop rodadas:
+        - 'VEZ_DICA <time>'
+            - Quando Mestre fornecer dica válida: 
+                - 'JOGO dica_valida'
+        - 'DICA_DADA <palavra> <numero>'
+        - Enquanto o Turno continuar:
+            - 'VEZ_PALPITE <time> <palpites_restantes>'
+            - Quando Agente fornecer palpite válido: 
+                - 'REVELAR <posicao> <cor>'
+                - 'PLACAR <vermelho_restantes> <azul_restantes>'
+            - Se errar ou acabar os palpites:
+                - 'FIM_TURNO <motivo> <proximo_time>'
+            - Quando Agente passar:
+                - 'JOGO passa_valida'
+                - 'FIM_TURNO <motivo> <proximo_time>'
+    - (quando um time vencer ou o outro perder):
+        - 'VENCEDOR <time> <motivo>'
+        - 'TABULEIRO_FINAL <carta1> ... <carta25>'
+        - 'JOGO encerrado'
+
+- Assim que algum time tenha conseguido todas as cartas certas ou algum deles tenha escolhido a carta assassina, o jogo é automaticamente encerrado com o servidor enviando 'VENCEDOR <time> <motivo>', 'TABULEIRO_FINAL' e 'JOGO encerrado'
 - Respostas de Sucesso:
     - CARGO: 'JOGO bem_vindo <cargo>'
     - CHUTE: 'JOGO chute_valido'
     - PASSA: 'JOGO passa_valida'
+    - DICA: 'JOGO dica_valida'
+
+
+# Limites e robustez
+- Tamanho máximo de uma linha: ///////////////////////////////////////////////(ADICIONAR NO FIM DO PROJETO O QUE DECIDIRMOS). Acima disso, o servidor descarta a linha e responde 'ERRO linha_longa'
+- O receptor aceita '\r\n' no fim da linha (remove o '\r')
+- Comandos em minúsculas ou misturados são tratados como 'comando_desconhecido'
+- Um comando que só o servidor envia (por exemplo 'REVELAR'), quando recebido pelo servidor, irá gerar 'ERRO comando_desconhecido'
+- Cliente que recebe do servidor uma mensagem desconhecida ou malformada: ignora a linha e registra, sem encerrar
+
+
+# Exemplo de uma rodada:
+
+-- Lobby --
+SERVIDOR>AGENTE_VERMELHO    CARGOS_LIVRES VERMELHO_MESTREESPIAO VERMELHO_AGENTE AZUL_MESTREESPIAO AZUL_AGENTE
+AGENTE_VERMELHO>            CARGO VERMELHO_AGENTE
+SERVIDOR>AGENTE_VERMELHO    JOGO bem_vindo VERMELHO_AGENTE
+SERVIDOR>AGENTE_AZUL        CARGOS_LIVRES VERMELHO_MESTREESPIAO AZUL_MESTREESPIAO AZUL_AGENTE
+AGENTE_AZUL>                CARGO VERMELHO_AGENTE
+SERVIDOR>AGENTE_AZUL        ERRO cargo_ocupado VERMELHO_AGENTE
+AGENTE_AZUL>                CARGO AZUL_AGENTE
+SERVIDOR>AGENTE_AZUL        JOGO bem_vindo AZUL_AGENTE
+
+(MESTRE_VERMELHO e MESTRE_AZUL entram do mesmo jeito, com JOGO bem_vindo para cada um)
+
+-- Início --
+SERVIDOR>*                  JOGO iniciado
+SERVIDOR>MESTRE_VERMELHO    TABULEIRO_MESTRE 1:PIZZA:VERMELHA:0 2:JET_SKI:AZUL:0 ... 25:LUA:NEUTRA:0
+SERVIDOR>MESTRE_AZUL        TABULEIRO_MESTRE 1:PIZZA:VERMELHA:0 2:JET_SKI:AZUL:0 ... 25:LUA:NEUTRA:0
+SERVIDOR>AGENTE_VERMELHO    TABULEIRO_AGENTE 1:PIZZA:?:0 2:JET_SKI:?:0 ... 25:LUA:?:0
+SERVIDOR>AGENTE_AZUL        TABULEIRO_AGENTE 1:PIZZA:?:0 2:JET_SKI:?:0 ... 25:LUA:?:0
+SERVIDOR>*                  PLACAR 9 8
+SERVIDOR>*                  VEZ_DICA VERMELHO
+
+-- Turno vermelho --
+MESTRE_VERMELHO>            DICA ITALIA 2
+SERVIDOR>MESTRE_VERMELHO    JOGO dica_valida
+SERVIDOR>*                  DICA_DADA ITALIA 2
+SERVIDOR>*                  VEZ_PALPITE VERMELHO 3
+AGENTE_AZUL>                CHUTE 5
+SERVIDOR>AGENTE_AZUL        ERRO fora_de_vez
+AGENTE_VERMELHO>            CHUTE 1
+SERVIDOR>AGENTE_VERMELHO    JOGO chute_valido
+SERVIDOR>*                  REVELAR 1 VERMELHA
+SERVIDOR>*                  PLACAR 8 8
+SERVIDOR>*                  VEZ_PALPITE VERMELHO 2
+AGENTE_VERMELHO>            CHUTE 5
+SERVIDOR>AGENTE_VERMELHO    JOGO chute_valido
+SERVIDOR>*                  REVELAR 5 NEUTRA
+SERVIDOR>*                  PLACAR 8 8
+SERVIDOR>*                  FIM_TURNO errou AZUL
+SERVIDOR>*                  VEZ_DICA AZUL
+
+-- Turno azul (termina no assassino) --
+MESTRE_AZUL>                DICA MAR 1
+SERVIDOR>MESTRE_AZUL        JOGO dica_valida
+SERVIDOR>*                  DICA_DADA MAR 1
+SERVIDOR>*                  VEZ_PALPITE AZUL 2
+AGENTE_AZUL>                CHUTE 12
+SERVIDOR>AGENTE_AZUL        JOGO chute_valido
+SERVIDOR>*                  REVELAR 12 ASSASSINA
+SERVIDOR>*                  PLACAR 8 8
+SERVIDOR>*                  VENCEDOR VERMELHO assassino
+SERVIDOR>*                  TABULEIRO_FINAL 1:PIZZA:VERMELHA:1 2:JET_SKI:AZUL:0 ... 25:LUA:NEUTRA:0
+SERVIDOR>*                  JOGO encerrado
