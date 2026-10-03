@@ -55,6 +55,13 @@ public class Tabuleiro {
         return null; // tratar isso -> erro, carta não existente ou já revelada
     }
 
+    public boolean cartaOcultaNoTabuleiro(String palavra){
+        for (Carta c : cartasJogo){
+            if(c.getPalavra() == palavra && !c.estaRevelada()) return true;
+        }
+        return false;
+    }
+
     /** Quantas cartas dessa cor ainda não foram reveladas. */
     public int cartasRestantes(CorCarta cor) {
         int qtd = 0;
