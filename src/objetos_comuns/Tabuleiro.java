@@ -155,14 +155,14 @@ public class Tabuleiro {
 
 
 public static void main(String[] args) {
-    //Tabuleiro tabuleiro = new Tabuleiro();
+    Tabuleiro tabuleiro = new Tabuleiro();
 
-    // System.out.print("Visão mestre------------------");
-    // System.out.print(tabuleiro.visaoMestre());
-    // System.out.print("Visão agente------------------");
-    // System.out.print(tabuleiro.visaoAgente());
+    System.out.print("Visão mestre------------------");
+    System.out.print(tabuleiro.visaoMestre());
+    System.out.print("Visão agente------------------");
+    System.out.print(tabuleiro.visaoAgente());
 
-    //System.out.print(tabuleiro.getTimeInicio().name()+" : "+tabuleiro.CartasRestantes(tabuleiro.getTimeInicio())+ "\n "+ tabuleiro.getOutroTime().name() +" : "+ tabuleiro.CartasRestantes(tabuleiro.getOutroTime()) );
+    System.out.print(tabuleiro.getTimeInicio().name()+" : "+tabuleiro.cartasRestantes(tabuleiro.getTimeInicio())+ "\n "+ tabuleiro.getOutroTime().name() +" : "+ tabuleiro.cartasRestantes(tabuleiro.getOutroTime()) );
 
 }
 

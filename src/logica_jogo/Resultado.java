@@ -39,7 +39,7 @@ public class Resultado {
         return erro;
     }
 
-    public List<Evento> gEventos(){
+    public List<Evento> getEventos(){
         return eventos;
     }
 }

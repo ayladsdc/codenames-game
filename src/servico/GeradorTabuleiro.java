@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Random;
 import java.util.Scanner;
 
@@ -56,8 +57,10 @@ public class GeradorTabuleiro {
     }
 
     public List<Carta> gerarTabuleiro(CorCarta timeInicio, CorCarta outroTime){
-        InputStream pacotePalavras = GeradorTabuleiro.class.getResourceAsStream("/resources/palavras.txt");
-        Scanner lista = new Scanner(pacotePalavras, "UTF-8");
+        //InputStream pacotePalavras = GeradorTabuleiro.class.getResourceAsStream("/resources/palavras.txt");
+        InputStream input = getClass().getResourceAsStream("/resources/palavras.txt"); // ou "palavras.txt" consoante a estrutura
+        Scanner lista = new Scanner(Objects.requireNonNull(input, "Ficheiro de palavras nao encontrado!"));
+        //Scanner lista = new Scanner(pacotePalavras, "UTF-8");
         List<String> listaProcessada = scanearPacote(lista);
         List<Carta> tabuleiro = embaralharLista(listaProcessada, timeInicio, outroTime);
     

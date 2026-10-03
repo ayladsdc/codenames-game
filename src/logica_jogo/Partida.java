@@ -167,7 +167,7 @@ public class Partida {
             return Resultado.erro("Não é a vez do seu time");
         }
  
-        //trocarTurno();
+        trocarTurno();
         return Resultado.sucesso(new Evento.FimTurno(timeDaVez));
     }
 
@@ -183,18 +183,26 @@ public class Partida {
         fase = Fase.FIM_DE_JOGO;
     }
 
-    public static void main(String[] args) {
-        Tabuleiro tabuleiro = new Tabuleiro();
-        Partida partida = new Partida(tabuleiro);
-        Cargo cara; 
-        //Cargo cara = Cargo.AZUL_MESTREESPIAO;
-        if(tabuleiro.getTimeInicio()==CorCarta.AZUL)
-            cara = Cargo.AZUL_MESTREESPIAO;
-        else
-            cara = Cargo.VERMELHO_MESTREESPIAO;
+    public Cargo cargoMestreDaVez() {
+        return (getTimeDaVez() == CorCarta.VERMELHO) ? Cargo.VERMELHO_MESTREESPIAO : Cargo.AZUL_MESTREESPIAO;
+    }
 
-        Resultado r1 = partida.darDica(cara, "animal a", 1);
-        System.out.println(r1.deuSucesso() + " | fase=" + partida.getFase() + "  " + r1.getErro());
+    public Cargo cargoAgenteDaVez() {
+        return (getTimeDaVez() == CorCarta.VERMELHO)  ? Cargo.VERMELHO_AGENTE : Cargo.AZUL_AGENTE;
+    }
+
+    public static void main(String[] args) {
+        // Tabuleiro tabuleiro = new Tabuleiro();
+        // Partida partida = new Partida(tabuleiro);
+        // Cargo cara; 
+        // //Cargo cara = Cargo.AZUL_MESTREESPIAO;
+        // if(tabuleiro.getTimeInicio()==CorCarta.AZUL)
+        //     cara = Cargo.AZUL_MESTREESPIAO;
+        // else
+        //     cara = Cargo.VERMELHO_MESTREESPIAO;
+
+        // Resultado r1 = partida.darDica(cara, "animal a", 1);
+        // System.out.println(r1.deuSucesso() + " | fase=" + partida.getFase() + "  " + r1.getErro());
     }
 }
 
