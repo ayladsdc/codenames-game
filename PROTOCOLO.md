@@ -13,14 +13,14 @@
 - Comandos devem vir como maiúsculas, e argumentos separados com somente um espaço
 - Palavras com espaço PRECISAM estar com '_' ao invés do espaço. Por exemplo 'SANCHO PANÇA' deve estar como 'SANCHO_PANÇA'
 - Linhas vazias serão respondidas com 'ERRO linha_vazia' e comandos inválidos com 'ERRO comando_desconhecido'
-- Erros serão respondidos com argumentos (palavra, em minúsculas, sem acento, com _ no lugar de espaços). Eles não encerram a conexão com os jogaodores e só vão para quem enviou os comandos errados
+- Erros serão respondidos com um motivo (uma palavra, em minúsculas, sem acento, com _ no lugar de espaços). A única exceção é 'cargo_ocupado', que leva também o cargo (em maiúsculas) como argumento. Eles não encerram a conexão com os jogadores e só vão para quem enviou os comandos errados
 
 # Dicionário
-- Cor da carta: 'VERMELHA', 'AZUL', 'NEUTRA', 'ASSASSINA'
+- Cor da carta: 'VERMELHA', 'AZUL', 'NEUTRA', 'ASSASSINA' (o símbolo '?' só aparece no 'TABULEIRO_AGENTE', no lugar da cor de uma carta oculta)
 - Time: 'VERMELHO', 'AZUL' (é o prefixo dos cargos)
 - Cargo: 'VERMELHO_MESTREESPIAO', 'VERMELHO_AGENTE', 'AZUL_MESTREESPIAO', 'AZUL_AGENTE'
 - Posição: inteiro de 1 a 25 (numeração descrita em Chutes)
-- Palavra: texto em UTF-8, em maiúsculas, com '_' no lugar do espaço (ex.: 'JET_SKI', 'SANCHO_PANÇA')
+- Palavra: texto em UTF-8, em maiúsculas, com '_' no lugar do espaço (ex.: 'JET_SKI', 'SANCHO_PANÇA'). A exceção é a dica enviada pelo mestre, que pode ter maiúsculas, minúsculas e acentos, mas não espaço nem '_' (ver Dica)
 - Número da dica: inteiro de 1 a 9
 
 # Cargos
@@ -38,7 +38,7 @@
 
 # Lobby
 - Ao conectar, o servidor deve enviar 'CARGOS_LIVRES' só para o novo cliente
-- 'CARGOS_LIVRES' também é enviada a todos que ainda estão no lobby sempre que um cargo é ocupado ou liberado
+- 'CARGOS_LIVRES' também é enviada a todos que ainda estão no lobby (inclusive quem já escolheu cargo e espera os demais) sempre que um cargo é ocupado ou liberado
 - Estrutura: 'CARGOS_LIVRES <cargo1> <cargo2> ...'
 - Exemplo: 'CARGOS_LIVRES VERMELHO_MESTREESPIAO AZUL_AGENTE'
 - Depois de 'ERRO cargo_ocupado' ou 'ERRO cargo_invalido' o jogador continua no lobby e pode mandar 'CARGO' de novo
@@ -54,8 +54,8 @@
 - Exemplo: 'CHUTE 9'
 - Mensagem de sucesso recebida: 'JOGO chute_valido'
 - Erros: 
-    - 'ERRO fora_de_vez' (caso mandado fora do turno ou enquanto é dada a dica ou)
-    - 'ERRO fora_de_hora' (partida não iniciada)
+    - 'ERRO fora_de_vez' (caso mandado fora do turno ou enquanto é dada a dica)
+    - 'ERRO fora_de_hora' (partida não iniciada ou já encerrada)
     - 'ERRO carta_ja_revelada'
     - 'ERRO posicao_invalida' (numero menor que 1 ou maior que 25)
     - 'ERRO papel_invalido'
@@ -66,9 +66,10 @@
 - Serve para caso o agente não saiba o que chutar e não queira arriscar
 - Estrutura: 'PASSA'
 - Exemplo: 'PASSA'
+- Mensagem de sucesso recebida: 'JOGO passa_valida'
 - Erros: 
     - 'ERRO fora_de_vez' (caso mandado fora do turno ou enquanto é dada a dica)
-    - 'ERRO fora_de_hora' (se a partida não foi iniciada)
+    - 'ERRO fora_de_hora' (se a partida não foi iniciada ou já foi encerrada)
     - 'ERRO papel_invalido'
     - 'ERRO argumentos_invalidos'
 
@@ -104,7 +105,7 @@
 - Estrutura: 'DICA <palavra> <numero>'
 - Exemplo: 'DICA Itália 2'
 - A palavra deve ser uma única palavra (só letras, acentos permitidos, sem '_').
-- A palavra não pode ser igual a nenhuma carta ainda oculta do tabuleiro (cartas já reveladas não contam)
+- A palavra não pode ser igual a nenhuma carta ainda oculta do tabuleiro (cartas já reveladas não contam). O mestre pode enviar a palavra em maiúsculas ou minúsculas, com ou sem acento. A comparação com as cartas ignora maiúsculas, minúsculas e acentos (ex.: 'itália' é igual a 'ITALIA'), e o servidor repassa a dica em maiúsculas, mantendo os acentos (ex.: 'ITÁLIA')
 - O número vai de 1 a 9. O número de palpites do turno é o número da dica + 1
 - Resposta de sucesso: 'JOGO dica_valida' (só para o mestre), seguida de 'DICA_DADA' e 'VEZ_PALPITE' para todos
 - Erros:
@@ -138,14 +139,14 @@
 
 # Turnos
 - Enviadas de servidor -> todos os jogadores. Cada cliente decide o que mostrar a partir do próprio cargo
-- 'VEZ_DICA <time>': começa a fase de dica.
+- 'VEZ_DICA <time>': começa a fase de dica. Só o mestre desse time pode enviar 'DICA'. Exemplo: 'VEZ_DICA VERMELHO'
 - 'DICA_DADA <palavra> <numero>': repassa a dica aceita para todos.
 - 'VEZ_PALPITE <time> <palpites_restantes>': começa (ou continua) a fase de palpite. Só o agente desse time pode enviar 'CHUTE' ou 'PASSA'. Isso aqui acontece depois de 'DICA_DADA' com número + 1 palpites. Depois de cada acerto que não encerra o turno, é apenas descontado um palpite. Exemplo: 'VEZ_PALPITE VERMELHO 3'
 - 'FIM_TURNO <motivo> <proximo_time>': encerra o turno. Sempre seguida de 'VEZ_DICA <proximo_time>'. Exemplo: 'FIM_TURNO errou AZUL'
     - motivo 'errou': a carta revelada era neutra ou do time adversário
     - motivo 'passou': o agente enviou 'PASSA'
-    - motivo 'sem_palpites': o agente usou todos os palpites
-- Ordem de uma jogada: 'REVELAR', 'PLACAR' e daí 'VEZ_PALPITE' (turno continua) ou 'FIM_TURNO' seguido de 'VEZ_DICA' (turno acabou) ou 'VENCEDOR' (jogo acabou)
+    - motivo 'sem_palpites': o agente usou todos os palpites (a 'VEZ_PALPITE' nunca é enviada com 0 palpites restantes)
+- Ordem de uma jogada: 'JOGO chute_valido' (só para quem chutou), 'REVELAR', 'PLACAR' e daí 'VEZ_PALPITE' (turno continua) ou 'FIM_TURNO' seguido de 'VEZ_DICA' (turno acabou) ou 'VENCEDOR' (jogo acabou)
 - Para 'PASSA', a sequência é 'FIM_TURNO passou <proximo_time>' e 'VEZ_DICA <proximo_time>'
 
 # Fim de jogo
@@ -153,7 +154,7 @@
 - Revelar a carta assassina faz perder o time de quem chutou
 - Direção: servidor -> todos
 - Estrutura: 'VENCEDOR <time> <motivo>'
-    - motivo 'todas_cartas': o time encontrou todas as suas cartas
+    - motivo 'todas_cartas': todas as cartas do time vencedor foram reveladas (por qualquer jogador)
     - motivo 'assassino': o time adversário revelou a carta assassina
 - Exemplo: 'VENCEDOR VERMELHO assassino'
 - Sequência final: 'VENCEDOR', 'TABULEIRO_FINAL', 'JOGO encerrado'. Depois disso o servidor fecha as conexões
@@ -186,6 +187,7 @@
         - Enquanto o Turno continuar:
             - 'VEZ_PALPITE <time> <palpites_restantes>'
             - Quando Agente fornecer palpite válido: 
+                - 'JOGO chute_valido'
                 - 'REVELAR <posicao> <cor>'
                 - 'PLACAR <vermelho_restantes> <azul_restantes>'
             - Se errar ou acabar os palpites:
@@ -199,7 +201,7 @@
         - 'JOGO encerrado'
 
 - Assim que algum time tenha conseguido todas as cartas certas ou algum deles tenha escolhido a carta assassina, o jogo é automaticamente encerrado com o servidor enviando 'VENCEDOR <time> <motivo>', 'TABULEIRO_FINAL' e 'JOGO encerrado'
-- Respostas de Sucesso:
+- Respostas de Sucesso (enviadas só para quem mandou o comando, antes das demais mensagens da jogada):
     - CARGO: 'JOGO bem_vindo <cargo>'
     - CHUTE: 'JOGO chute_valido'
     - PASSA: 'JOGO passa_valida'
@@ -207,7 +209,7 @@
 
 
 # Limites e robustez
-- Tamanho máximo de uma linha: ///////////////////////////////////////////////(ADICIONAR NO FIM DO PROJETO O QUE DECIDIRMOS). Acima disso, o servidor descarta a linha e responde 'ERRO linha_longa'
+- Tamanho máximo de uma linha: 2048 caracteres (o tabuleiro tem cerca de 700). Acima disso, o servidor descarta a linha e responde 'ERRO linha_longa'
 - O receptor aceita '\r\n' no fim da linha (remove o '\r')
 - Comandos em minúsculas ou misturados são tratados como 'comando_desconhecido'
 - Um comando que só o servidor envia (por exemplo 'REVELAR'), quando recebido pelo servidor, irá gerar 'ERRO comando_desconhecido'
@@ -238,9 +240,9 @@ SERVIDOR>*                  PLACAR 9 8
 SERVIDOR>*                  VEZ_DICA VERMELHO
 
 -- Turno vermelho --
-MESTRE_VERMELHO>            DICA ITALIA 2
+MESTRE_VERMELHO>            DICA Itália 2
 SERVIDOR>MESTRE_VERMELHO    JOGO dica_valida
-SERVIDOR>*                  DICA_DADA ITALIA 2
+SERVIDOR>*                  DICA_DADA ITÁLIA 2
 SERVIDOR>*                  VEZ_PALPITE VERMELHO 3
 AGENTE_AZUL>                CHUTE 5
 SERVIDOR>AGENTE_AZUL        ERRO fora_de_vez
