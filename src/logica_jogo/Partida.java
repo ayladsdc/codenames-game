@@ -194,6 +194,9 @@ public class Partida {
             cara = Cargo.VERMELHO_MESTREESPIAO;
 
         Resultado r1 = partida.darDica(cara, "animal a", 1);
-        System.out.println(r1.deuSucesso() + " | fase=" + partida.getFase() + " " + r1.getErro());
+        System.out.println(r1.deuSucesso() + " | fase=" + partida.getFase() + "  " + r1.getErro());
     }
 }
+
+
+
