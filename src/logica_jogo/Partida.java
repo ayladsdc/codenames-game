@@ -197,6 +197,3 @@ public class Partida {
         // System.out.println(r1.deuSucesso() + " | fase=" + partida.getFase() + "  " + r1.getErro());
     }
 }
-
-
-

@@ -2,7 +2,7 @@ package objetos_comuns;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import servico.*; // uso do nextRandom, mostrada aqui (https://www.devmedia.com.br/numeros-aleatorios-em-java-a-classe-java-util-random/26355)
+import servico.*;
 
 public class Tabuleiro {
     private static final int tamanhoTabuleiro = 25;
@@ -22,6 +22,16 @@ public class Tabuleiro {
         cartasJogo = gerador.gerarTabuleiro(TimeInicio, outroTime);
     }
 
+    public Tabuleiro(List<Carta> cartas, CorCarta timeInicio) {
+        if (cartas == null || timeInicio == null) {
+            throw new IllegalArgumentException("Cartas e timeInicio não podem ser nulos.");
+        }
+        
+        this.cartasJogo = new ArrayList<>(cartas);
+        this.TimeInicio = timeInicio;
+        outroTime = (TimeInicio == CorCarta.VERMELHA) ? CorCarta.AZUL : CorCarta.VERMELHA;
+    }
+
     public CorCarta getTimeInicio(){return TimeInicio;}
     public CorCarta getOutroTime(){return outroTime;}
     public List<Carta> getCartasJogo(){return cartasJogo;}
@@ -39,13 +49,15 @@ public class Tabuleiro {
     }
 
     /**Procura a carta, se ela existir e ainda não tiver sido revelada, revela. Se não, da erro/aviso */
-    public Carta revelar(int num){
-        Carta c = acharPeloNumero(num);
-        if(c!= null && !c.estaRevelada()){
-            c.revelar();
-            return c;
-        }
-        return null; // tratar isso -> erro, carta não existente ou já revelada
+    public Carta revelar(int posicao){
+
+        if(posicao < 1 || posicao > getTamanhotabuleiro()) throw new IllegalArgumentException(Protocolo.Erro.POSICAO_INVALIDA);
+
+        Carta c = acharPeloNumero(posicao);
+
+        if(c.estaRevelada()) throw new IllegalArgumentException(Protocolo.Erro.CARTA_JA_REVELADA);
+
+        return c;
     }
 
     public boolean cartaOcultaNoTabuleiro(String palavra){

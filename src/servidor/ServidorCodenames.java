@@ -17,7 +17,7 @@ import objetos_comuns.*;
     recebe só 4 cliente por agr, um socket pra cada */
 
 public class ServidorCodenames {
-    private static final int PORTA = 5000;
+    private static final int PORTA = Protocolo.PORTA_PADRAO;
 
     private final int port;
     private Map<Cargo, Player> players = new EnumMap<>(Cargo.class); //pra mapear tds os jogadpres e seus cargos
