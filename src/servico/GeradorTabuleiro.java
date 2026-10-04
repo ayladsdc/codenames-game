@@ -15,14 +15,10 @@ public class GeradorTabuleiro {
 
     public List<String> scanearPacote(Scanner listaBruta){
         List<String> listaProcessada = new ArrayList<String>();
-
         while(listaBruta.hasNextLine()) listaProcessada.add(listaBruta.nextLine());
-
         return listaProcessada;
     }
 
-
-    
     public List<Carta> embaralharLista(List<String> lista, CorCarta timeInicio, CorCarta outroTime){
 
         int linhasTotais = lista.size();
@@ -42,10 +38,10 @@ public class GeradorTabuleiro {
         }
 
         List<CorCarta> cores = new ArrayList<>();
-        for (int i = 0; i < 9; i++) cores.add(timeInicio);      // 9 cartas do primeiro time
-        for (int i = 0; i < 8; i++) cores.add(outroTime);        // 8 cartas do segundo time
-        for (int i = 0; i < 7; i++) cores.add(CorCarta.NEUTRA);  // 7 neutras
-        for (int i = 0; i < 1; i++) cores.add(CorCarta.ASSASSINO); // 1 assassino
+        for (int i = 0; i < 9; i++) cores.add(timeInicio);          // 9 cartas do primeiro time
+        for (int i = 0; i < 8; i++) cores.add(outroTime);           // 8 cartas do segundo time
+        for (int i = 0; i < 7; i++) cores.add(CorCarta.NEUTRA);     // 7 neutras
+        for (int i = 0; i < 1; i++) cores.add(CorCarta.ASSASSINA);  // 1 assassina
         Collections.shuffle(cores, random);  // Embaralha a ordem das cores 
 
         List<Carta> listaCartas = new ArrayList<Carta>();

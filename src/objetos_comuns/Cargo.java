@@ -1,18 +1,18 @@
 package objetos_comuns;
 
 public enum Cargo {
-    VERMELHO_MESTREESPIAO,
-    VERMELHO_AGENTE,
+    VERMELHA_MESTREESPIAO,
+    VERMELHA_AGENTE,
     AZUL_MESTREESPIAO,
     AZUL_AGENTE;
 
     // A qual time este papel pertence
     public CorCarta time() {
-        return (this == VERMELHO_MESTREESPIAO || this == VERMELHO_AGENTE) ? CorCarta.VERMELHO : CorCarta.AZUL;
+        return (this == VERMELHA_MESTREESPIAO || this == VERMELHA_AGENTE) ? CorCarta.VERMELHA : CorCarta.AZUL;
     }
 
     public boolean eMestreEspiao() {
-        return this == VERMELHO_MESTREESPIAO || this == AZUL_MESTREESPIAO;
+        return this == VERMELHA_MESTREESPIAO || this == AZUL_MESTREESPIAO;
     }
 }
 

@@ -1,8 +1,8 @@
 package objetos_comuns;
 
 public enum CorCarta {
-    VERMELHO,
+    VERMELHA,
     AZUL,
     NEUTRA,
-    ASSASSINO
+    ASSASSINA
 }

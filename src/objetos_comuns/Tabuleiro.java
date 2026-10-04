@@ -1,12 +1,11 @@
 package objetos_comuns;
-import servico.*;
-
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random; // uso do nextRandom, mostrada aqui (https://www.devmedia.com.br/numeros-aleatorios-em-java-a-classe-java-util-random/26355)
+import java.util.Random;
+import servico.*; // uso do nextRandom, mostrada aqui (https://www.devmedia.com.br/numeros-aleatorios-em-java-a-classe-java-util-random/26355)
 
 public class Tabuleiro {
-    public static final int tamanhoTabuleiro = 25;
+    private static final int tamanhoTabuleiro = 25;
 
     private List <Carta> cartasJogo = new ArrayList<>();
     private final CorCarta TimeInicio;
@@ -17,23 +16,17 @@ public class Tabuleiro {
         Random random = new Random();
         
         //escolhe a cor de cada time aleatoriamnete
-        TimeInicio = (random.nextBoolean()) ? CorCarta.VERMELHO : CorCarta.AZUL;
-        outroTime = (TimeInicio == CorCarta.VERMELHO) ? CorCarta.AZUL : CorCarta.VERMELHO;
+        TimeInicio = (random.nextBoolean()) ? CorCarta.VERMELHA : CorCarta.AZUL;
+        outroTime = (TimeInicio == CorCarta.VERMELHA) ? CorCarta.AZUL : CorCarta.VERMELHA;
         
         cartasJogo = gerador.gerarTabuleiro(TimeInicio, outroTime);
-        
     }
 
-    public CorCarta getTimeInicio() {
-        return TimeInicio;
-    }
-    public CorCarta getOutroTime(){
-        return outroTime;
-    }
-
-    public List<Carta> getCartasJogo() {
-        return cartasJogo;
-    }
+    public CorCarta getTimeInicio(){return TimeInicio;}
+    public CorCarta getOutroTime(){return outroTime;}
+    public List<Carta> getCartasJogo(){return cartasJogo;}
+    
+    public static int getTamanhotabuleiro() { return tamanhoTabuleiro;}
 
     /**procura e retorna a carta pelo numero de sua posição, null se n achar  */
     public Carta acharPeloNumero(int numero) {
@@ -57,7 +50,7 @@ public class Tabuleiro {
 
     public boolean cartaOcultaNoTabuleiro(String palavra){
         for (Carta c : cartasJogo){
-            if(c.getPalavra() == palavra && !c.estaRevelada()) return true;
+            if(c.getPalavra().equals(palavra) && !c.estaRevelada()) return true;
         }
         return false;
     }
@@ -116,7 +109,7 @@ public class Tabuleiro {
     return gradeCompleta.toString();
     }
 
-/** funçaõ do gemini para exibir o tabuleiro do agente --- IA */
+/** função do gemini para exibir o tabuleiro do agente --- IA */
     public String visaoAgente() {
         StringBuilder gradeCompleta = new StringBuilder();
         int colunasPorLinha = 5; // Mantém 5 cartas por linha

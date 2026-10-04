@@ -8,8 +8,6 @@ import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
-
-
 import objetos_comuns.*;
 
 /*  aqui vai toda a lógica do servidor INICIAl (sem mais de uma sala)
@@ -61,11 +59,11 @@ public class ServidorCodenames {
     private void enviaTabuleiros(){
         //Exibe tabuleiros  pros agentes
         players.get(Cargo.AZUL_AGENTE).enviar(tabuleiro.visaoAgente());
-        players.get(Cargo.VERMELHO_AGENTE).enviar(tabuleiro.visaoAgente());
+        players.get(Cargo.VERMELHA_AGENTE).enviar(tabuleiro.visaoAgente());
 
         //Exibi tabuleiros pros mestres
         players.get(Cargo.AZUL_MESTREESPIAO).enviar(tabuleiro.visaoMestre());
-        players.get(Cargo.VERMELHO_MESTREESPIAO).enviar(tabuleiro.visaoMestre());
+        players.get(Cargo.VERMELHA_MESTREESPIAO).enviar(tabuleiro.visaoMestre());
     }
 
 /** Função que conecta os jpgadores e recebe o cargo que eles querem (da pra refinar, a gente faz se der tempo) */
@@ -103,18 +101,16 @@ public class ServidorCodenames {
                 if (resquisitado == null) {
                     player.enviar(Protocolo.Servidor.ERRO + " Papel invalido");
                 } else if (!disponivel.contains(resquisitado)) {
-                    player.enviar(Protocolo.Servidor.CARGO_OCUPADO + " " + resquisitado);
+                    player.enviar(Protocolo.Erro.CARGO_OCUPADO + " " + resquisitado);
                 } else {
                     escolha = resquisitado;
                     // atauliza as vars e coloca o player no map
                     player.setCargo(escolha);
                     disponivel.remove(escolha);
                     players.put(escolha, player);
-                    player.enviar(Protocolo.Servidor.BEM_VINDO + " " + escolha);
+                    player.enviar(Protocolo.Jogo.BEM_VINDO + " " + escolha);
                     System.out.println(escolha + " conectado (" + (4 - disponivel.size()) + "/4).");
                 }
-
-                
 
             } else {
                 player.enviar((Protocolo.Servidor.ERRO + " Comando invalido. Use: " + Protocolo.Cliente.CARGO + " <NOME>"));
@@ -129,7 +125,5 @@ public class ServidorCodenames {
             p.enviar(msg);
         }
     }
-
-
 
 }

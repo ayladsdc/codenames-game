@@ -110,7 +110,7 @@
 - Resposta de sucesso: 'JOGO dica_valida' (só para o mestre), seguida de 'DICA_DADA' e 'VEZ_PALPITE' para todos
 - Erros:
     - 'ERRO fora_de_hora' (partida não iniciada ou já encerrada)
-    - 'ERRO fora_de_vez' (caso mandado fora do turno ou enquanto os agentes estão chutando)
+    - 'ERRO fora_de_vez' (caso seja enviada enquanto os agentes estão chutando, ou seja do time adversário da vez)
     - 'ERRO papel_invalido' (quem enviou não é mestre)
     - 'ERRO argumentos_invalidos' (faltam ou sobram argumentos, ou o número não é inteiro)
     - 'ERRO dica_invalida' (palavra igual a uma carta oculta, ou com caracteres que não são letras)

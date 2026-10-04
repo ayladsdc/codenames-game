@@ -2,10 +2,10 @@ package logica_jogo;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import objetos_comuns.Cargo;
 import objetos_comuns.Carta;
 import objetos_comuns.CorCarta;
+import objetos_comuns.Protocolo;
 import objetos_comuns.Tabuleiro;
 
 /** A intenção disso tudo é fazer com que a a Partida controle toda a lógica do jogo, sendo ativada pelo servidor, que 
@@ -13,7 +13,7 @@ import objetos_comuns.Tabuleiro;
 */
 
 public class Partida {
-     private final Tabuleiro tabuleiro;
+    private final Tabuleiro tabuleiro;
     private CorCarta timeDaVez;
     private Fase fase;
     private int palpitesRestantes;
@@ -29,54 +29,48 @@ public class Partida {
         this.motivoFim = null;
     }
 
-    public CorCarta getTimeDaVez() {
-        return timeDaVez;
-    }
+    public CorCarta getTimeDaVez() {return timeDaVez;}
  
-    public Fase getFase() {
-        return fase;
-    }
+    public Fase getFase() {return fase;}
  
-    public CorCarta getVencedor() {
-        return vencedor;
-    }
+    public CorCarta getVencedor() {return vencedor;}
  
-    public String getMotivoFim() {
-        return motivoFim;
-    }
- 
-    public Tabuleiro getTabuleiro() {
-        return tabuleiro;
-    }
- 
-    public int getPalpitesRestantes() {
-        return palpitesRestantes;
-    }
+    public String getMotivoFim() {return motivoFim;}
+
+    public Tabuleiro getTabuleiro() {return tabuleiro;}
+
+    public int getPalpitesRestantes() {return palpitesRestantes;}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Aqui vão ficar todas as ações que um jogador pode fazer, com todas suas exeções
 
     /**trata a entrada no i/o no servidor msm??? */
     public Resultado darDica(Cargo jogador, String palavra, int numero){
-        //primeiro, trata todos os possiveis erros
-        if(fase==Fase.JOGO_NAO_INICIADO){
-            return Resultado.erro("fora_de_hora");
+        
+        if(fase == Fase.FIM_DE_JOGO || fase == Fase.JOGO_NAO_INICIADO){
+            return Resultado.erro(Protocolo.Erro.FORA_DE_HORA);
         }
-        if(fase!=Fase.AGUARDANDO_DICA || timeDaVez !=jogador.time()){
-            return Resultado.erro("fora_de_vez");
+
+        if(!jogador.eMestreEspiao()) {
+            return Resultado.erro(Protocolo.Erro.PAPEL_INVALIDO);
         }
-        else if(!jogador.eMestreEspiao()){
-            return Resultado.erro("papel_invalido");
+
+        if(fase != Fase.AGUARDANDO_PALPITE || timeDaVez !=jogador.time()){
+            return Resultado.erro(Protocolo.Erro.FORA_DE_VEZ);
         }
         
-        // aqui ele ve o numero da palpites é valido: maior ou igual a 1 E menor ou igual ao que o numero de cartas restantes
-        if(numero < 1 ||numero > tabuleiro.cartasRestantes(jogador.time())){ 
-            return Resultado.erro("numero_invalido");
+        if(palavra == null || palavra.isBlank()) {
+            return Resultado.erro(Protocolo.Erro.ARGUMENTOS_INVALIDOS);
+        }
+
+        //limite de palpites é nove, e o mínimo é 1
+        if(numero < 1 || numero > 9){ 
+            return Resultado.erro(Protocolo.Erro.NUMERO_INVALIDO);
         } 
 
-        // aqui ele ve se a palvra é uma que ainda ta oculta no tabuleiro, tem um numero no meio ou tem espaços
         String palavraLimpa = palavra.trim();
-        if(tabuleiro.cartaOcultaNoTabuleiro(palavra) || palavra.matches(".*\\d.*") ||palavraLimpa.contains(" ") ){
-            return Resultado.erro("dica_invalida");
+        if(!palavraLimpa.matches("\\p{L}+") /*vê se a palavra tem algo além de letras com ou sem acento de qualquer idioma*/|| tabuleiro.cartaOcultaNoTabuleiro(palavraLimpa)){
+            return Resultado.erro(Protocolo.Erro.DICA_INVALIDA);
         }
 
         fase = Fase.AGUARDANDO_PALPITE;
@@ -85,23 +79,25 @@ public class Partida {
         return Resultado.sucesso(new Evento.DicaDada(timeDaVez, palavraLimpa, numero));
     }
 
-    public Resultado chutar(Cargo jogador, int numeroCarta){//colocar no PROTOCOLO.md tds os erros possiveis
-        if(fase==Fase.JOGO_NAO_INICIADO){
-            return Resultado.erro("fora_de_hora");
+    public Resultado chutar(Cargo jogador, int numeroCarta){
+        
+        if(numeroCarta < 1 || numeroCarta > Tabuleiro.getTamanhotabuleiro()){
+            return Resultado.erro(Protocolo.Erro.POSICAO_INVALIDA);
+        }
+
+        if(fase == Fase.FIM_DE_JOGO || fase == Fase.JOGO_NAO_INICIADO){
+            return Resultado.erro(Protocolo.Erro.FORA_DE_HORA);
         }
         if(jogador.time() != timeDaVez || fase != Fase.AGUARDANDO_PALPITE){
-            return Resultado.erro("fora_da_vez"); 
+            return Resultado.erro(Protocolo.Erro.FORA_DE_VEZ); 
         }
         if(jogador.eMestreEspiao()){
-            return Resultado.erro("papel_invalido");
+            return Resultado.erro(Protocolo.Erro.PAPEL_INVALIDO);
         }
-        
+
         Carta carta = tabuleiro.acharPeloNumero(numeroCarta);
-        if(carta == null){
-            return Resultado.erro("palpite_invalido");
-        }
         if(carta.estaRevelada()){
-            return Resultado.erro("carta_ja_revelada");
+            return Resultado.erro(Protocolo.Erro.CARTA_JA_REVELADA);
         }
 
         carta.revelar();
@@ -111,10 +107,10 @@ public class Partida {
  
         CorCarta corRevelada = carta.getCor();
 
-        //1. se for a carta do assassino
-        if(corRevelada== CorCarta.ASSASSINO){
-            CorCarta timeVencedor = (timeDaVez == CorCarta.VERMELHO) ? CorCarta.AZUL : CorCarta.VERMELHO; // seleciona o outro time como campeao
-            finalizarJogo(timeVencedor, "ASSASSINO");
+        //1. se for a carta assassina
+        if(corRevelada == CorCarta.ASSASSINA){
+            CorCarta timeVencedor = (timeDaVez == CorCarta.VERMELHA) ? CorCarta.AZUL : CorCarta.VERMELHA; // seleciona o outro time como campeao
+            finalizarJogo(timeVencedor, "ASSASSINA");
             eventos.add(new Evento.FimDeJogo(vencedor, motivoFim));
             return Resultado.sucesso(eventos);
         }
@@ -154,17 +150,15 @@ public class Partida {
 
      /** Agente da vez desiste do restante dos palpites. */
     public Resultado passar(Cargo autor) {
-         if(fase==Fase.JOGO_NAO_INICIADO){
-            return Resultado.erro("fora_de_hora");
+        if(fase == Fase.FIM_DE_JOGO || fase == Fase.JOGO_NAO_INICIADO){
+            return Resultado.erro(Protocolo.Erro.FORA_DE_HORA);
         }
-        if (fase != Fase.AGUARDANDO_PALPITE) {
-            return Resultado.erro("Não é hora de passar");
+
+        if(fase != Fase.AGUARDANDO_PALPITE) {
+            return Resultado.erro(Protocolo.Erro.FORA_DE_VEZ);
         }
-        if (autor.eMestreEspiao()) {
-            return Resultado.erro("Mestre não passa, só agente");
-        }
-        if (autor.time() != timeDaVez) {
-            return Resultado.erro("Não é a vez do seu time");
+        if(autor.eMestreEspiao() || autor.time() != timeDaVez) {
+            return Resultado.erro(Protocolo.Erro.PAPEL_INVALIDO);
         }
  
         trocarTurno();
@@ -172,7 +166,7 @@ public class Partida {
     }
 
     private void trocarTurno(){
-        timeDaVez = (timeDaVez == CorCarta.VERMELHO) ? CorCarta.AZUL : CorCarta.VERMELHO; 
+        timeDaVez = (timeDaVez == CorCarta.VERMELHA) ? CorCarta.AZUL : CorCarta.VERMELHA; 
         fase = Fase.AGUARDANDO_DICA;
         palpitesRestantes= 0;
     }
@@ -184,11 +178,11 @@ public class Partida {
     }
 
     public Cargo cargoMestreDaVez() {
-        return (getTimeDaVez() == CorCarta.VERMELHO) ? Cargo.VERMELHO_MESTREESPIAO : Cargo.AZUL_MESTREESPIAO;
+        return (getTimeDaVez() == CorCarta.VERMELHA) ? Cargo.VERMELHA_MESTREESPIAO : Cargo.AZUL_MESTREESPIAO;
     }
 
     public Cargo cargoAgenteDaVez() {
-        return (getTimeDaVez() == CorCarta.VERMELHO)  ? Cargo.VERMELHO_AGENTE : Cargo.AZUL_AGENTE;
+        return (getTimeDaVez() == CorCarta.VERMELHA)  ? Cargo.VERMELHA_AGENTE : Cargo.AZUL_AGENTE;
     }
 
     public static void main(String[] args) {
