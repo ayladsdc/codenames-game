@@ -55,7 +55,7 @@ public class Partida {
             return Resultado.erro(Protocolo.Erro.FORA_DE_VEZ);
         }
         
-        if(palavra == null || palavra.isBlank()) {
+        if(palavra == null || palavra.isEmpty()) {
             return Resultado.erro(Protocolo.Erro.ARGUMENTOS_INVALIDOS);
         }
 
@@ -133,7 +133,7 @@ public class Partida {
         if (corRevelada != CorCarta.NEUTRA) {
             CorCarta timeDaCartaRevelada = corRevelada;
             if (tabuleiro.cartasRestantes(timeDaCartaRevelada) == 0) {
-                finalizarJogo(timeDaCartaRevelada, "TODAS_PALAVRAS");
+                finalizarJogo(timeDaCartaRevelada, Protocolo.MotivoVencedor.TODAS_CARTAS);
                 eventos.add(new Evento.FimDeJogo(vencedor, motivoFim));
                 return Resultado.sucesso(eventos);
             }

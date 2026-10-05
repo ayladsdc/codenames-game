@@ -8,6 +8,11 @@ import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+
+import logica_jogo.Evento;
+import logica_jogo.Fase;
+import logica_jogo.Partida;
+import logica_jogo.Resultado;
 import objetos_comuns.*;
 
 /*  aqui vai toda a lógica do servidor INICIAl (sem mais de uma sala)
@@ -22,6 +27,7 @@ public class ServidorCodenames {
     private final int port;
     private Map<Cargo, Player> players = new EnumMap<>(Cargo.class); //pra mapear tds os jogadpres e seus cargos
     private Tabuleiro tabuleiro;
+    private Partida partida;
 
     public ServidorCodenames(int port){
         this.port = port;
@@ -43,13 +49,14 @@ public class ServidorCodenames {
         try ( ServerSocket servidor = new ServerSocket(port)){ // abriu o servidor
             System.out.println("Aguardando 4 jogadores na porta " + port);
             aceitaPlayers(servidor);
+    
+            System.out.println("Todos os jogadores conectados! Iniciando Partida");
+            broadcast(Protocolo.Servidor.JOGO + " " + Protocolo.Jogo.INICIADO);
+    
+            tabuleiro = new Tabuleiro();
+            enviaTabuleiros();
+            iniciarJogo();
         }
-
-        System.out.println("Todos os jogadores conectados! Iniciando Partida");
-        broadcast(Protocolo.Servidor.INFO + " Todos jogadores prontos! Iniciando partida");
-
-        tabuleiro = new Tabuleiro();
-        enviaTabuleiros();
 
         //inicia o jogo: função iniciarJogo()
         //se tiver problema fecha (ent faz trys e catchs)
@@ -57,13 +64,204 @@ public class ServidorCodenames {
 
     /** Função que exibe o tabuleiro para os diferentes cargos. Usa as funções visaoAgente() e visaoMestre() da classe tabuleiro*/
     private void enviaTabuleiros(){
-        //Exibe tabuleiros  pros agentes
-        players.get(Cargo.AZUL_AGENTE).enviar(tabuleiro.visaoAgente());
-        players.get(Cargo.VERMELHA_AGENTE).enviar(tabuleiro.visaoAgente());
+        String visaoAgente = codificarTabuleiro(false);
+        String visaoMestre = codificarTabuleiro(true);
 
-        //Exibi tabuleiros pros mestres
-        players.get(Cargo.AZUL_MESTREESPIAO).enviar(tabuleiro.visaoMestre());
-        players.get(Cargo.VERMELHA_MESTREESPIAO).enviar(tabuleiro.visaoMestre());
+        players.get(Cargo.AZUL_AGENTE).enviar(Protocolo.Servidor.TABULEIRO_AGENTE + " " + visaoAgente);
+        players.get(Cargo.VERMELHA_AGENTE).enviar(Protocolo.Servidor.TABULEIRO_AGENTE + " " + visaoAgente);
+
+        players.get(Cargo.AZUL_MESTREESPIAO).enviar(Protocolo.Servidor.TABULEIRO_MESTRE + " " + visaoMestre);
+        players.get(Cargo.VERMELHA_MESTREESPIAO).enviar(Protocolo.Servidor.TABULEIRO_MESTRE + " " + visaoMestre);
+    }
+    
+    private void iniciarJogo() throws IOException {
+        partida = new Partida(tabuleiro);
+
+        while(partida.getFase()!= Fase.FIM_DE_JOGO){  // enquanto jogo não acabar, ou ta na fase de dica ou na de palpite
+            if(partida.getFase()== Fase.AGUARDANDO_DICA){
+                processarTurnoDica(partida.cargoMestreDaVez());
+            } else {
+                processarTurnoPalpite(partida.cargoAgenteDaVez());
+            }
+        }
+
+        System.out.println("Partida encerrada! Vencedor: " + partida.getVencedor()
+                + " (" + partida.getMotivoFim() + ")");
+
+        // tabuleiro completo pra todo mundo, agora que acabou
+        broadcast(Protocolo.Servidor.TABULEIRO_FINAL + " " + codificarTabuleiro(true));
+        broadcast(Protocolo.Servidor.JOGO + " " + Protocolo.Jogo.ENCERRADO);
+
+        desconectarTodos();
+    }
+
+    private String codificarTabuleiro(boolean mostrarCor) {
+        StringBuilder sb = new StringBuilder();
+        for (Carta c : tabuleiro.getCartasJogo()) {
+            if (sb.length() > 0) {
+                sb.append(Protocolo.SEPARADOR);
+            }
+            sb.append(codificarCarta(c, mostrarCor));
+        }
+        return sb.toString();
+    }
+
+    private String codificarCarta(Carta c, boolean mostrarCor) {
+        String cor = (mostrarCor || c.estaRevelada()) ? corParaProtocolo(c.getCor()) : Protocolo.CARTA_OCULTA;
+        String revelada = c.estaRevelada() ? "1" : "0";
+        return c.getPosicao() + Protocolo.SEPARADOR_CAMPOS_CARTA
+                + c.getPalavra().replace(" ", "_") + Protocolo.SEPARADOR_CAMPOS_CARTA
+                + cor + Protocolo.SEPARADOR_CAMPOS_CARTA
+                + revelada;
+    }
+
+    private void processarTurnoDica(Cargo cargoDaVez) throws IOException {
+        Player jogador = players.get(cargoDaVez);
+        broadcast(Protocolo.Servidor.VEZ_DICA + " " + cargoDaVez.time());
+        //coloca tempo maximo ?????
+
+        //recebe a entrada do jogador, fica em loop ate a dica estar correta
+        while(true){
+            String linha = jogador.recebe();
+            if (linha == null) {
+                tratarDesconexao(jogador);
+                return;
+            }
+            linha = linha.trim();
+            if (linha.isEmpty()) {
+                jogador.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.LINHA_VAZIA);
+                continue;
+            }
+            if (linha.length() > Protocolo.TAMANHO_MAXIMO_LINHA) {
+                jogador.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.LINHA_LONGA);
+                continue;
+            }
+
+            String[] partes = linha.split("\\s+", 3);
+            if (!partes[0].equalsIgnoreCase(Protocolo.Cliente.DICA)) {
+                jogador.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.COMANDO_DESCONHECIDO);
+                continue;
+            }
+            if (partes.length != 3) {
+                jogador.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.ARGUMENTOS_INVALIDOS);
+                continue;
+            }
+
+            int numero;
+            try {
+                numero = Integer.parseInt(partes[2]);
+            } catch (NumberFormatException e) {
+                jogador.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.NUMERO_INVALIDO);
+                continue;
+            }
+
+            Resultado r = partida.darDica(cargoDaVez, partes[1], numero);
+            if(!r.deuSucesso()){
+                jogador.enviar(Protocolo.Servidor.ERRO + " " + r.getErro());
+                continue; // reinicia o loop até dar sucesso
+            }
+
+            Evento.DicaDada e = (Evento.DicaDada) r.getEventos().get(0);
+            jogador.enviar(Protocolo.Servidor.JOGO + " " + Protocolo.Jogo.DICA_VALIDA);
+            broadcast(Protocolo.Servidor.DICA_DADA + " " + e.palavra + " " + e.numero);
+            return;
+        }
+
+    }
+
+        private void processarTurnoPalpite(Cargo cargoDaVez) throws IOException {
+        Player jogador = players.get(cargoDaVez);
+        broadcast(Protocolo.Servidor.VEZ_PALPITE + " " + cargoDaVez.time() + " " + partida.getPalpitesRestantes());
+        //coloca tempo maximo ?????
+
+        //enquanto tiver aguardando palpite
+        while (partida.getFase() == Fase.AGUARDANDO_PALPITE){
+            String linha = jogador.recebe();
+            if (linha == null) {
+                tratarDesconexao(jogador);
+                return;
+            }
+            linha = linha.trim();
+            if (linha.isEmpty()) {
+                jogador.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.LINHA_VAZIA);
+                continue;
+            }
+            if (linha.length() > Protocolo.TAMANHO_MAXIMO_LINHA) {
+                jogador.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.LINHA_LONGA);
+                continue;
+            }
+
+            String[] partes = linha.split("\\s+");
+
+            if (partes[0].equalsIgnoreCase(Protocolo.Cliente.PASSA)) {
+                Resultado r = partida.passar(cargoDaVez);
+                if (!r.deuSucesso()) {
+                    jogador.enviar(Protocolo.Servidor.ERRO + " " + r.getErro());
+                    continue;
+                }
+                Evento.FimTurno fimTurno = (Evento.FimTurno) r.getEventos().get(0);
+                jogador.enviar(Protocolo.Servidor.JOGO + " " + Protocolo.Jogo.PASSA_VALIDA);
+                broadcast(Protocolo.Servidor.FIM_TURNO + " " + Protocolo.MotivoFimTurno.PASSOU
+                        + " " + fimTurno.proximoTime);
+                return;
+            }
+
+            if (!partes[0].equalsIgnoreCase(Protocolo.Cliente.CHUTE)) {
+                jogador.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.COMANDO_DESCONHECIDO);
+                continue;
+            }
+            if (partes.length != 2) {
+                jogador.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.ARGUMENTOS_INVALIDOS);
+                continue;
+            }
+
+            int posicao;
+            try {
+                posicao = Integer.parseInt(partes[1]);
+            } catch (NumberFormatException e) {
+                jogador.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.POSICAO_INVALIDA);
+                continue;
+            }
+
+            Resultado r = partida.chutar(cargoDaVez, posicao);
+            if (!r.deuSucesso()) {
+                jogador.enviar(Protocolo.Servidor.ERRO + " " + r.getErro());
+                continue;
+            }
+            jogador.enviar(Protocolo.Servidor.JOGO + " " + Protocolo.Jogo.CHUTE_VALIDO);
+
+            // chutar sempre devolve Revelar primeiro, e às vezes um segundo evento junto (fim de jogo ou fim de turno)
+            Evento.Revelar revelou = (Evento.Revelar) r.getEventos().get(0);
+            broadcast(Protocolo.Servidor.REVELAR + " " + revelou.carta.getPosicao()
+                    + " " + corParaProtocolo(revelou.carta.getCor()));
+            broadcastPlacar();
+
+            if (r.getEventos().size() == 1) {
+                // só revelou (acertou a propria cor, ainda sobra tentativa) -- turno continua
+                broadcast(Protocolo.Servidor.VEZ_PALPITE + " " + cargoDaVez.time()
+                        + " " + partida.getPalpitesRestantes());
+                continue;
+            }
+
+            Evento segundo = r.getEventos().get(1);
+            if (segundo instanceof Evento.FimDeJogo) {
+                
+                // ("todas_cartas" / "assassino"), nao mais "TODAS_PALAVRAS"/"ASSASSINO".
+                //Evento.FimDeJogo fim = (Evento.FimDeJogo) segundo;
+                broadcast(Protocolo.Servidor.VENCEDOR + " " + Protocolo.MotivoVencedor.TODAS_CARTAS);
+            } else {
+                //Evento.FimTurno fimTurno = (Evento.FimTurno) segundo;
+                // se a carta que acabou de ser revelada era da cor do
+                // proprio time, o turno so acabou porque esgotaram as tentativas;
+                // se era neutra ou do adversario, foi erro de palpite mesmo.
+                if(revelou.carta.getCor() == cargoDaVez.time())
+                    broadcast(Protocolo.MotivoFimTurno.SEM_PALPITES);
+                else
+                    broadcast(Protocolo.MotivoFimTurno.ERROU);
+                
+            }
+            return;
+        }
     }
 
 /** Função que conecta os jpgadores e recebe o cargo que eles querem (da pra refinar, a gente faz se der tempo) */
@@ -75,11 +273,12 @@ public class ServidorCodenames {
             Player player = new Player(socket);
             System.out.println("Cliente conectado: " + socket.getInetAddress());
 
-            player.enviar(Protocolo.Servidor.INFO + " Papeis disponiveis: " + disponivel);
+            player.enviar(Protocolo.Servidor.CARGOS_LIVRES);
             // aceitou a conexão e agr p player seleciona o cargo q qr
             Cargo escolha = null;
+
             while(escolha==null){
-            player.enviar(Protocolo.Servidor.INFO + " Escolha um cargo (" + Protocolo.Cliente.CARGO + "<NOME>):");
+            player.enviar(Protocolo.Servidor.CARGOS_LIVRES);
             String resposta = player.recebe();
             if(resposta==null) { //vazou e não escolheu o cargo
                 System.out.println("Cliente desconectou antes de escolher papel.");
@@ -99,25 +298,56 @@ public class ServidorCodenames {
                 }
 
                 if (resquisitado == null) {
-                    player.enviar(Protocolo.Servidor.ERRO + " Papel invalido");
+                    player.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.CARGO_INVALIDO);
                 } else if (!disponivel.contains(resquisitado)) {
-                    player.enviar(Protocolo.Erro.CARGO_OCUPADO + " " + resquisitado);
+                    player.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.CARGO_OCUPADO + " " + resquisitado);
                 } else {
                     escolha = resquisitado;
                     // atauliza as vars e coloca o player no map
                     player.setCargo(escolha);
                     disponivel.remove(escolha);
                     players.put(escolha, player);
-                    player.enviar(Protocolo.Jogo.BEM_VINDO + " " + escolha);
+                    player.enviar(Protocolo.Servidor.JOGO + " " + Protocolo.Jogo.BEM_VINDO + " " + escolha);
                     System.out.println(escolha + " conectado (" + (4 - disponivel.size()) + "/4).");
                 }
 
             } else {
-                player.enviar((Protocolo.Servidor.ERRO + " Comando invalido. Use: " + Protocolo.Cliente.CARGO + " <NOME>"));
+                player.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.COMANDO_DESCONHECIDO);
             }
 
             }
         }
+    }
+
+    private void tratarDesconexao(Player jogador) {
+        System.out.println(jogador.getCargo() + " desconectou durante a partida.");
+        broadcast(Protocolo.Servidor.INFO + " Um jogador desconectou. Partida encerrada.");
+        broadcast(Protocolo.Servidor.JOGO + " " + Protocolo.Jogo.ENCERRADO);
+        desconectarTodos();
+    }
+
+    private void desconectarTodos() {
+        System.out.println("Encerrando a conexão com todos os jogadores...");
+        for (Player p : players.values()) {
+            p.Fechar();
+        }
+        players.clear();
+    }
+
+    private String corParaProtocolo(CorCarta cor) {
+        switch (cor) {
+            case VERMELHA: return Protocolo.Cor.VERMELHA;
+            case AZUL: return Protocolo.Cor.AZUL;
+            case NEUTRA: return Protocolo.Cor.NEUTRA;
+            case ASSASSINA: return Protocolo.Cor.ASSASSINA;
+            default: throw new IllegalStateException("Cor desconhecida: " + cor);
+        }
+    }
+
+    private void broadcastPlacar() {
+        int vermelha = tabuleiro.cartasRestantes(CorCarta.VERMELHA);
+        int azul = tabuleiro.cartasRestantes(CorCarta.AZUL);
+        broadcast(Protocolo.Servidor.PLACAR + " " + vermelha + " " + azul);
     }
 
     private void broadcast(String msg) {
