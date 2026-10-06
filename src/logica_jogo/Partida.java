@@ -43,29 +43,17 @@ public class Partida {
     /**trata a entrada no i/o no servidor msm??? */
     public Resultado darDica(Cargo jogador, String palavra, int numero){
         
-        if(fase == Fase.FIM_DE_JOGO || fase == Fase.JOGO_NAO_INICIADO){
-            return Resultado.erro(Protocolo.Erro.FORA_DE_HORA);
-        }
-
-        if(!jogador.eMestreEspiao()) {
-            return Resultado.erro(Protocolo.Erro.PAPEL_INVALIDO);
-        }
-
-        if(fase != Fase.AGUARDANDO_DICA || timeDaVez !=jogador.time()){
-            return Resultado.erro(Protocolo.Erro.FORA_DE_VEZ);
-        }
-        
-        if(palavra == null || palavra.isEmpty()) {
-            return Resultado.erro(Protocolo.Erro.ARGUMENTOS_INVALIDOS);
-        }
-
-        //limite do número de dicas é nove, e o mínimo é 1
-        if(numero < 1 || numero > 9){ 
-            return Resultado.erro(Protocolo.Erro.NUMERO_INVALIDO);
-        } 
+        //muitas verificações
+        if(fase == Fase.FIM_DE_JOGO || fase == Fase.JOGO_NAO_INICIADO){return Resultado.erro(Protocolo.Erro.FORA_DE_HORA);}
+        if(!jogador.eMestreEspiao()) {return Resultado.erro(Protocolo.Erro.PAPEL_INVALIDO);}
+        if(fase != Fase.AGUARDANDO_DICA || timeDaVez !=jogador.time()){return Resultado.erro(Protocolo.Erro.FORA_DE_VEZ);}
+        if(palavra == null || palavra.isEmpty()) {return Resultado.erro(Protocolo.Erro.ARGUMENTOS_INVALIDOS);}
+        if(numero < 1 || numero > 9){return Resultado.erro(Protocolo.Erro.NUMERO_INVALIDO);} //limite do número de dicas é nove, e o mínimo é 1
 
         String palavraLimpa = palavra.trim();
-        if(!palavraLimpa.matches("\\p{L}+") /*vê se a palavra tem algo além de letras com ou sem acento de qualquer idioma*/|| tabuleiro.cartaOcultaNoTabuleiro(palavraLimpa)){
+
+        
+        if(!palavraLimpa.matches("\\p{L}+") || tabuleiro.cartaOcultaNoTabuleiro(palavraLimpa)){ /*o "\\p{L}+" vê se a palavra tem algo além de letras com ou sem acento de qualquer idioma*/
             return Resultado.erro(Protocolo.Erro.DICA_INVALIDA);
         }
 
@@ -77,27 +65,17 @@ public class Partida {
 
     public Resultado chutar(Cargo jogador, int numeroCarta){
         
-        if(fase == Fase.FIM_DE_JOGO || fase == Fase.JOGO_NAO_INICIADO){
-            return Resultado.erro(Protocolo.Erro.FORA_DE_HORA);
-        }
+        //verificações
+        if(fase == Fase.FIM_DE_JOGO || fase == Fase.JOGO_NAO_INICIADO) return Resultado.erro(Protocolo.Erro.FORA_DE_HORA);
+        if(jogador.eMestreEspiao()) return Resultado.erro(Protocolo.Erro.PAPEL_INVALIDO);
+        if(fase != Fase.AGUARDANDO_PALPITE || jogador.time() != timeDaVez) return Resultado.erro(Protocolo.Erro.FORA_DE_VEZ);
 
-        if(jogador.eMestreEspiao()){
-            return Resultado.erro(Protocolo.Erro.PAPEL_INVALIDO);
+        Carta carta;
+        try {
+            carta = tabuleiro.revelar(numeroCarta);
+        } catch (IllegalArgumentException e) {
+            return Resultado.erro(e.getMessage());
         }
-
-        if(fase != Fase.AGUARDANDO_PALPITE || jogador.time() != timeDaVez){
-            return Resultado.erro(Protocolo.Erro.FORA_DE_VEZ); 
-        }
-
-        Carta carta = tabuleiro.acharPeloNumero(numeroCarta);
-        if(carta == null){
-            return Resultado.erro(Protocolo.Erro.POSICAO_INVALIDA);
-        }
-        if(carta.estaRevelada()){
-            return Resultado.erro(Protocolo.Erro.CARTA_JA_REVELADA);
-        }
-
-        carta.revelar();
 
         List<Evento> eventos = new ArrayList<>();
         eventos.add(new Evento.Revelar(carta));
@@ -145,19 +123,12 @@ public class Partida {
         
     }
 
-     /** Agente da vez desiste do restante dos palpites. */
+    /** Agente da vez desiste do restante dos palpites. */
     public Resultado passar(Cargo autor) {
-        if(fase == Fase.FIM_DE_JOGO || fase == Fase.JOGO_NAO_INICIADO){
-            return Resultado.erro(Protocolo.Erro.FORA_DE_HORA);
-        }
-
-        if(autor.eMestreEspiao()) {
-            return Resultado.erro(Protocolo.Erro.PAPEL_INVALIDO);
-        }
-
-        if(fase != Fase.AGUARDANDO_PALPITE || autor.time() != timeDaVez) {
-            return Resultado.erro(Protocolo.Erro.FORA_DE_VEZ);
-        }
+        //verificações
+        if(fase == Fase.FIM_DE_JOGO || fase == Fase.JOGO_NAO_INICIADO){return Resultado.erro(Protocolo.Erro.FORA_DE_HORA);}
+        if(autor.eMestreEspiao()) {return Resultado.erro(Protocolo.Erro.PAPEL_INVALIDO);}
+        if(fase != Fase.AGUARDANDO_PALPITE || autor.time() != timeDaVez) {return Resultado.erro(Protocolo.Erro.FORA_DE_VEZ);}
  
         trocarTurno();
         return Resultado.sucesso(new Evento.FimTurno(timeDaVez));
@@ -175,25 +146,22 @@ public class Partida {
         fase = Fase.FIM_DE_JOGO;
     }
 
-    public Cargo cargoMestreDaVez() {
-        return (getTimeDaVez() == CorCarta.VERMELHA) ? Cargo.VERMELHA_MESTREESPIAO : Cargo.AZUL_MESTREESPIAO;
-    }
-
-    public Cargo cargoAgenteDaVez() {
-        return (getTimeDaVez() == CorCarta.VERMELHA)  ? Cargo.VERMELHA_AGENTE : Cargo.AZUL_AGENTE;
-    }
-
+    public Cargo cargoMestreDaVez() {return (getTimeDaVez() == CorCarta.VERMELHA) ? Cargo.VERMELHA_MESTREESPIAO : Cargo.AZUL_MESTREESPIAO;}
+    public Cargo cargoAgenteDaVez() {return (getTimeDaVez() == CorCarta.VERMELHA)  ? Cargo.VERMELHA_AGENTE : Cargo.AZUL_AGENTE;}
+    
+    /* 
     public static void main(String[] args) {
-        // Tabuleiro tabuleiro = new Tabuleiro();
-        // Partida partida = new Partida(tabuleiro);
-        // Cargo cara; 
-        // //Cargo cara = Cargo.AZUL_MESTREESPIAO;
-        // if(tabuleiro.getTimeInicio()==CorCarta.AZUL)
-        //     cara = Cargo.AZUL_MESTREESPIAO;
-        // else
-        //     cara = Cargo.VERMELHO_MESTREESPIAO;
+        Tabuleiro tabuleiro = new Tabuleiro();
+        Partida partida = new Partida(tabuleiro);
+        Cargo cara; 
+        //Cargo cara = Cargo.AZUL_MESTREESPIAO;
+        if(tabuleiro.getTimeInicio()==CorCarta.AZUL)
+            cara = Cargo.AZUL_MESTREESPIAO;
+        else
+            cara = Cargo.VERMELHO_MESTREESPIAO;
 
-        // Resultado r1 = partida.darDica(cara, "animal a", 1);
-        // System.out.println(r1.deuSucesso() + " | fase=" + partida.getFase() + "  " + r1.getErro());
+        Resultado r1 = partida.darDica(cara, "animal a", 1);
+        System.out.println(r1.deuSucesso() + " | fase=" + partida.getFase() + "  " + r1.getErro());
     }
+    */
 }
