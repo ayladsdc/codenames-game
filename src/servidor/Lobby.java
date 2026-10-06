@@ -7,9 +7,11 @@ import java.net.ServerSocket; import java.net.Socket;
 import java.util.ArrayList; import java.util.Arrays;
 import java.util.EnumMap; import java.util.Map;
 import java.util.List;
+import java.net.SocketTimeoutException;
 
 public class Lobby {
     private final ServerSocket server;
+    private volatile boolean jogoComecou = false;
     private final Map<Cargo, Player> players = new EnumMap<>(Cargo.class);
     private final List<Cargo> disponivel = new ArrayList<>(Arrays.asList(Cargo.values()));
     private final List<Player> todosConectados = new ArrayList<>();
@@ -55,6 +57,7 @@ public class Lobby {
                     Thread.currentThread().interrupt();
                 }
             }
+            jogoComecou = true;
         }
 
         return players; // Devolve o Map pronto para o ServidorCodenames
@@ -62,11 +65,12 @@ public class Lobby {
 
     private void lidarComPlayer(Player player) {
         try {
-            while (true) {
+            boolean escolheu = false;
+            while (!escolheu) {
                 String linha = player.recebe();
                 if (linha == null) {
                     desconectar(player);
-                    break;
+                    return;
                 }
 
                 String[] partes = linha.trim().split("\\s+", 2);
@@ -104,7 +108,8 @@ public class Lobby {
                             if (players.size() == 4) {
                                 notifyAll();
                             }
-                            break; // Quebra o loop para este jogador (espera acabar na main)
+                            escolheu = true;
+                             // Quebra o loop para este jogador (espera acabar na main)
                         }
                     }
                 } else {
@@ -114,7 +119,35 @@ public class Lobby {
         } catch (IOException e) {
             desconectar(player);
         }
+
+        vigiarAposEscolha(player);
     }
+
+    private void vigiarAposEscolha(Player player) {
+    try {
+        player.getSocket().setSoTimeout(200); // so um "tick" de verificacao
+        while (!jogoComecou) {
+            try {
+                String linha = player.recebe();
+                if (linha == null) {
+                    desconectar(player);
+                    return;
+                }
+                // qualquer coisa enviada nesse meio tempo e ignorada
+            } catch (SocketTimeoutException e) {
+                // normal: ninguem mandou nada nesses 200ms, continua conectado
+            }
+        }
+    } catch (IOException e) {
+        desconectar(player);
+        return;
+    } finally {
+        try {
+            player.getSocket().setSoTimeout(0); // devolve o socket "limpo" pro jogo usar
+        } catch (IOException ignored) {
+        }
+    }
+}
 
     private synchronized void enviarCargosLivres(Player p) {
         StringBuilder sb = new StringBuilder(Protocolo.Servidor.CARGOS_LIVRES);

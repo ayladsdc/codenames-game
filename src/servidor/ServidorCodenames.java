@@ -21,6 +21,7 @@ public class ServidorCodenames {
     private static final int PORTA = Protocolo.PORTA_PADRAO;
 
     private final int port;
+    private volatile boolean partidaEncerrada = false;
     private Map<Cargo, Player> players = new EnumMap<>(Cargo.class); //pra mapear tds os jogadpres e seus cargos
     private Tabuleiro tabuleiro;
     private Partida partida;
@@ -55,8 +56,7 @@ public class ServidorCodenames {
             iniciarJogo();
         }
 
-        //inicia o jogo: função iniciarJogo()
-        //se tiver problema fecha (ent faz trys e catchs)
+        
     }
 
     /** Função que exibe o tabuleiro para os diferentes cargos. Usa as funções visaoAgente() e visaoMestre() da classe tabuleiro*/
@@ -74,22 +74,25 @@ public class ServidorCodenames {
     private void iniciarJogo() throws IOException {
         partida = new Partida(tabuleiro);
 
-        while(partida.getFase()!= Fase.FIM_DE_JOGO){  // enquanto jogo não acabar, ou ta na fase de dica ou na de palpite
-            if(partida.getFase()== Fase.AGUARDANDO_DICA){
-                processarTurnoDica(partida.cargoMestreDaVez());
-            } else {
-                processarTurnoPalpite(partida.cargoAgenteDaVez());
+        while(!partidaEncerrada && partida.getFase()!= Fase.FIM_DE_JOGO ){  // enquanto jogo não acabar, ou ta na fase de dica ou na de palpite
+            while(partida.getFase()!= Fase.FIM_DE_JOGO){  // enquanto jogo não acabar, ou ta na fase de dica ou na de palpite
+                if(partida.getFase()== Fase.AGUARDANDO_DICA){
+                    processarTurnoDica(partida.cargoMestreDaVez());
+                } else {
+                    processarTurnoPalpite(partida.cargoAgenteDaVez());
+                }
             }
         }
 
-        System.out.println("Partida encerrada! Vencedor: " + partida.getVencedor()
-                + " (" + partida.getMotivoFim() + ")");
-
-        // tabuleiro completo pra todo mundo, agora que acabou
-        broadcast(Protocolo.Servidor.TABULEIRO_FINAL + " " + codificarTabuleiro(true));
-        broadcast(Protocolo.Servidor.JOGO + " " + Protocolo.Jogo.ENCERRADO);
-
-        desconectarTodos();
+        if (partidaEncerrada) {
+            System.out.println("Partida encerrada por desconexao.");
+        } else {
+            System.out.println("Partida encerrada! Vencedor: " + partida.getVencedor()
+                    + " (" + partida.getMotivoFim() + ")");
+            broadcast(Protocolo.Servidor.TABULEIRO_FINAL + " " + codificarTabuleiro(true));
+            broadcast(Protocolo.Servidor.JOGO + " " + Protocolo.Jogo.ENCERRADO);
+            desconectarTodos();
+        }
     }
 
     private String codificarTabuleiro(boolean mostrarCor) {
@@ -119,11 +122,20 @@ public class ServidorCodenames {
 
         //recebe a entrada do jogador, fica em loop ate a dica estar correta
         while(true){
-            String linha = jogador.recebe();
+            String linha;
+            try {
+                linha = jogador.recebe();
+            } catch (IOException e) {
+                tratarDesconexao(jogador);
+                return;
+            }
+            
             if (linha == null) {
                 tratarDesconexao(jogador);
                 return;
             }
+
+
             linha = linha.trim();
             if (linha.isEmpty()) {
                 jogador.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.LINHA_VAZIA);
@@ -173,8 +185,10 @@ public class ServidorCodenames {
 
         //enquanto tiver aguardando palpite
         while (partida.getFase() == Fase.AGUARDANDO_PALPITE){
-            String linha = jogador.recebe();
-            if (linha == null) {
+            String linha;
+            try {
+                linha = jogador.recebe();
+            } catch (IOException e) {
                 tratarDesconexao(jogador);
                 return;
             }
@@ -242,20 +256,14 @@ public class ServidorCodenames {
 
             Evento segundo = r.getEventos().get(1);
             if (segundo instanceof Evento.FimDeJogo) {
-                
-                // ("todas_cartas" / "assassino"), nao mais "TODAS_PALAVRAS"/"ASSASSINO".
-                //Evento.FimDeJogo fim = (Evento.FimDeJogo) segundo;
-                broadcast(Protocolo.Servidor.VENCEDOR + " " + Protocolo.MotivoVencedor.TODAS_CARTAS);
+                Evento.FimDeJogo fim = (Evento.FimDeJogo) segundo;
+                broadcast(Protocolo.Servidor.VENCEDOR + " " + fim.vencedor + " " + fim.motivo);
             } else {
-                //Evento.FimTurno fimTurno = (Evento.FimTurno) segundo;
-                // se a carta que acabou de ser revelada era da cor do
-                // proprio time, o turno so acabou porque esgotaram as tentativas;
-                // se era neutra ou do adversario, foi erro de palpite mesmo.
-                if(revelou.carta.getCor() == cargoDaVez.time())
-                    broadcast(Protocolo.MotivoFimTurno.SEM_PALPITES);
-                else
-                    broadcast(Protocolo.MotivoFimTurno.ERROU);
-                
+                Evento.FimTurno fimTurno = (Evento.FimTurno) segundo;
+                String motivo = (revelou.carta.getCor() == cargoDaVez.time())
+                        ? Protocolo.MotivoFimTurno.SEM_PALPITES
+                        : Protocolo.MotivoFimTurno.ERROU;
+                broadcast(Protocolo.Servidor.FIM_TURNO + " " + motivo + " " + fimTurno.proximoTime);
             }
             return;
         }
@@ -266,6 +274,7 @@ public class ServidorCodenames {
         broadcast(Protocolo.Servidor.INFO + " Um jogador desconectou. Partida encerrada.");
         broadcast(Protocolo.Servidor.JOGO + " " + Protocolo.Jogo.ENCERRADO);
         desconectarTodos();
+        partidaEncerrada = true;
     }
 
     private void desconectarTodos() {
