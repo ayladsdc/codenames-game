@@ -8,4 +8,4 @@ if not exist out (
   exit /b 1
 )
 
-java -cp "out;." cliente.ClienteCodenames %*
+java -cp "out;." cliente.Cliente %*

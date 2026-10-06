@@ -2,11 +2,7 @@ package servidor;
 
 import java.io.IOException;
 import java.net.ServerSocket;
-import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.EnumMap;
-import java.util.List;
 import java.util.Map;
 
 import logica_jogo.Evento;
@@ -46,9 +42,10 @@ public class ServidorCodenames {
 
         System.out.println("Servidor codenames iniciado");
 
-        try ( ServerSocket servidor = new ServerSocket(port)){ // abriu o servidor
+        try (ServerSocket servidor = new ServerSocket(port)){ // abriu o servidor
             System.out.println("Aguardando 4 jogadores na porta " + port);
-            aceitaPlayers(servidor);
+            Lobby lobby = new Lobby(servidor);
+            this.players = lobby.aguardarJogadores();
     
             System.out.println("Todos os jogadores conectados! Iniciando Partida");
             broadcast(Protocolo.Servidor.JOGO + " " + Protocolo.Jogo.INICIADO);
@@ -261,61 +258,6 @@ public class ServidorCodenames {
                 
             }
             return;
-        }
-    }
-
-/** Função que conecta os jpgadores e recebe o cargo que eles querem (da pra refinar, a gente faz se der tempo) */
-    private void aceitaPlayers(ServerSocket server) throws IOException {
-        List<Cargo> disponivel = new  ArrayList<>(Arrays.asList(Cargo.values()));
-
-        while(!disponivel.isEmpty()){
-            Socket socket = server.accept();
-            Player player = new Player(socket);
-            System.out.println("Cliente conectado: " + socket.getInetAddress());
-
-            player.enviar(Protocolo.Servidor.CARGOS_LIVRES);
-            // aceitou a conexão e agr p player seleciona o cargo q qr
-            Cargo escolha = null;
-
-            while(escolha==null){
-            player.enviar(Protocolo.Servidor.CARGOS_LIVRES);
-            String resposta = player.recebe();
-            if(resposta==null) { //vazou e não escolheu o cargo
-                System.out.println("Cliente desconectou antes de escolher papel.");
-                player.Fechar();
-                break;///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            }
-
-            String[] parts = resposta.trim().split("\\s+",2);
-            if(parts.length ==2 && parts[0].equalsIgnoreCase(Protocolo.Cliente.CARGO)){///////compara 
-                
-                Cargo resquisitado = null; 
-
-                try{
-                    resquisitado = Cargo.valueOf(parts[1].toUpperCase());
-                } catch (IllegalArgumentException e) {
-                    player.enviar(Protocolo.Servidor.ERRO + " Papel invalido");
-                }
-
-                if (resquisitado == null) {
-                    player.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.CARGO_INVALIDO);
-                } else if (!disponivel.contains(resquisitado)) {
-                    player.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.CARGO_OCUPADO + " " + resquisitado);
-                } else {
-                    escolha = resquisitado;
-                    // atauliza as vars e coloca o player no map
-                    player.setCargo(escolha);
-                    disponivel.remove(escolha);
-                    players.put(escolha, player);
-                    player.enviar(Protocolo.Servidor.JOGO + " " + Protocolo.Jogo.BEM_VINDO + " " + escolha);
-                    System.out.println(escolha + " conectado (" + (4 - disponivel.size()) + "/4).");
-                }
-
-            } else {
-                player.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.COMANDO_DESCONHECIDO);
-            }
-
-            }
         }
     }
 
