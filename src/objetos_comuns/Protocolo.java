@@ -110,10 +110,10 @@ public class Protocolo {
     // Motivo de 'VENCEDOR <time> <motivo>'
     public static class MotivoVencedor {
         public static final String TODAS_CARTAS = "todas_cartas";
-        public static final String ASSASSINO = "assassino";
+        public static final String ASSASSINA = "assassina";
     }
 
-    // Cor da carta como aparece nas mensagens (o enum CorCarta usa VERMELHO e ASSASSINO,
+    // Cor da carta como aparece nas mensagens (o enum CorCarta usa VERMELHA e ASSASSINA,
     // a conversão entre os dois fica na classe Mensagem)
     public static class Cor {
         public static final String VERMELHA = "VERMELHA";
@@ -124,7 +124,7 @@ public class Protocolo {
 
     // Time como aparece nas mensagens (mesmo prefixo dos cargos)
     public static class Time {
-        public static final String VERMELHO = "VERMELHO";
+        public static final String VERMELHA = "VERMELHA";
         public static final String AZUL = "AZUL";
     }
 }

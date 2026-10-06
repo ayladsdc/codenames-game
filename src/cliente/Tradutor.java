@@ -135,7 +135,7 @@ public class Tradutor {
 
     private static String traduzirMotivoVencedor(String motivo) {
         if (motivo.equals(Protocolo.MotivoVencedor.TODAS_CARTAS)) return "revelou todas as próprias cartas";
-        if (motivo.equals(Protocolo.MotivoVencedor.ASSASSINO)) return "o outro time acertou o assassino";
+        if (motivo.equals(Protocolo.MotivoVencedor.ASSASSINA)) return "o outro time acertou o assassino";
         return motivo;
     }
 

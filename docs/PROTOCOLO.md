@@ -1,7 +1,7 @@
 # Visão Geral
 - Transporte: TCP pela confiabilidade do transporte, nada pode ser perdido e precisa ser recebido na ordem de sequência de envio
 - Porta padrão: 1996, podendo ser trocada se estiver ocupada
-- Jogadores: 4 por partida, dois times (azul e vermelho) com um agente e um mestre
+- Jogadores: 4 por partida, dois times (azul e vermelha) com um agente e um mestre
 - Codificação: UTF-8
 - Quem inicia: O servidor fica parado escutando a porta 1996, e os clientes iniciam a conexão com ele
 - Quem fala com quem: clientes conversam com o servidor, que verifica, valida e repassa informações para os outros jogadores
@@ -17,8 +17,8 @@
 
 # Dicionário
 - Cor da carta: 'VERMELHA', 'AZUL', 'NEUTRA', 'ASSASSINA' (o símbolo '?' só aparece no 'TABULEIRO_AGENTE', no lugar da cor de uma carta oculta)
-- Time: 'VERMELHO', 'AZUL' (é o prefixo dos cargos)
-- Cargo: 'VERMELHO_MESTREESPIAO', 'VERMELHO_AGENTE', 'AZUL_MESTREESPIAO', 'AZUL_AGENTE'
+- Time: 'VERMELHA', 'AZUL' (é o prefixo dos cargos)
+- Cargo: 'VERMELHA_MESTREESPIAO', 'VERMELHA_AGENTE', 'AZUL_MESTREESPIAO', 'AZUL_AGENTE'
 - Posição: inteiro de 1 a 25 (numeração descrita em Chutes)
 - Palavra: texto em UTF-8, em maiúsculas, com '_' no lugar do espaço (ex.: 'JET_SKI', 'SANCHO_PANÇA'). A exceção é a dica enviada pelo mestre, que pode ter maiúsculas, minúsculas e acentos, mas não espaço nem '_' (ver Dica)
 - Número da dica: inteiro de 1 a 9
@@ -26,8 +26,8 @@
 # Cargos
 - Deverão ser informados do cliente -> servidor durante o lobby antes de iniciar a partida
 - Estrutura: 'CARGO <NOME_DO_CARGO>'
-- Cargos disponíveis: 'VERMELHO_MESTREESPIAO', 'VERMELHO_AGENTE', 'AZUL_MESTREESPIAO', 'AZUL_AGENTE'
-- Exemplos: 'CARGO VERMELHO_AGENTE', 'CARGO AZUL_MESTREESPIAO'
+- Cargos disponíveis: 'VERMELHA_MESTREESPIAO', 'VERMELHA_AGENTE', 'AZUL_MESTREESPIAO', 'AZUL_AGENTE'
+- Exemplos: 'CARGO VERMELHA_AGENTE', 'CARGO AZUL_MESTREESPIAO'
 - Mensagem de sucesso recebida: 'JOGO bem_vindo <cargo>' 
 - Erros: 
     - 'ERRO cargo_invalido' (provavelmente esqueceu o _, errou a escrita ou cargo não existe) 
@@ -40,7 +40,7 @@
 - Ao conectar, o servidor deve enviar 'CARGOS_LIVRES' só para o novo cliente
 - 'CARGOS_LIVRES' também é enviada a todos que ainda estão no lobby (inclusive quem já escolheu cargo e espera os demais) sempre que um cargo é ocupado ou liberado
 - Estrutura: 'CARGOS_LIVRES <cargo1> <cargo2> ...'
-- Exemplo: 'CARGOS_LIVRES VERMELHO_MESTREESPIAO AZUL_AGENTE'
+- Exemplo: 'CARGOS_LIVRES VERMELHA_MESTREESPIAO AZUL_AGENTE'
 - Depois de 'ERRO cargo_ocupado' ou 'ERRO cargo_invalido' o jogador continua no lobby e pode mandar 'CARGO' de novo
 - Se dois jogadores pedem o mesmo cargo ao mesmo tempo, o servidor atende o primeiro que processar, e o outro recebe 'ERRO cargo_ocupado <cargo>'
 - Um jogador que já tem cargo e envia 'CARGO' de novo recebe 'ERRO cargo_ja_escolhido'
@@ -133,15 +133,15 @@
 
 # Placar
 - É feito de servidor -> todos, no começo do jogo (depois dos tabuleiros) e depois de cada 'REVELAR'
-- Estrutura: 'PLACAR <vermelho_restantes> <azul_restantes>'
+- Estrutura: 'PLACAR <vermelha_restantes> <azul_restantes>'
 - Os valores são o número de cartas de cada time que ainda não foram reveladas, ou seja, está na frente quem está com o menor placar.
 - Exemplo: 'PLACAR 6 7'
 
 # Turnos
 - Enviadas de servidor -> todos os jogadores. Cada cliente decide o que mostrar a partir do próprio cargo
-- 'VEZ_DICA <time>': começa a fase de dica. Só o mestre desse time pode enviar 'DICA'. Exemplo: 'VEZ_DICA VERMELHO'
+- 'VEZ_DICA <time>': começa a fase de dica. Só o mestre desse time pode enviar 'DICA'. Exemplo: 'VEZ_DICA VERMELHA'
 - 'DICA_DADA <palavra> <numero>': repassa a dica aceita para todos.
-- 'VEZ_PALPITE <time> <palpites_restantes>': começa (ou continua) a fase de palpite. Só o agente desse time pode enviar 'CHUTE' ou 'PASSA'. Isso aqui acontece depois de 'DICA_DADA' com número + 1 palpites. Depois de cada acerto que não encerra o turno, é apenas descontado um palpite. Exemplo: 'VEZ_PALPITE VERMELHO 3'
+- 'VEZ_PALPITE <time> <palpites_restantes>': começa (ou continua) a fase de palpite. Só o agente desse time pode enviar 'CHUTE' ou 'PASSA'. Isso aqui acontece depois de 'DICA_DADA' com número + 1 palpites. Depois de cada acerto que não encerra o turno, é apenas descontado um palpite. Exemplo: 'VEZ_PALPITE VERMELHA 3'
 - 'FIM_TURNO <motivo> <proximo_time>': encerra o turno. Sempre seguida de 'VEZ_DICA <proximo_time>'. Exemplo: 'FIM_TURNO errou AZUL'
     - motivo 'errou': a carta revelada era neutra ou do time adversário
     - motivo 'passou': o agente enviou 'PASSA'
@@ -156,7 +156,7 @@
 - Estrutura: 'VENCEDOR <time> <motivo>'
     - motivo 'todas_cartas': todas as cartas do time vencedor foram reveladas (por qualquer jogador)
     - motivo 'assassino': o time adversário revelou a carta assassina
-- Exemplo: 'VENCEDOR VERMELHO assassino'
+- Exemplo: 'VENCEDOR VERMELHA assassino'
 - Sequência final: 'VENCEDOR', 'TABULEIRO_FINAL', 'JOGO encerrado'. Depois disso o servidor fecha as conexões
 
 # Mensagens informativas
@@ -178,7 +178,7 @@
     - 'JOGO iniciado'
     - Para os Mestres: 'TABULEIRO_MESTRE <carta1> ... <carta25>'
     - Para os Agentes: 'TABULEIRO_AGENTE <carta1> ... <carta25>'
-    - 'PLACAR <vermelho_restantes> <azul_restantes>'
+    - 'PLACAR <vermelha_restantes> <azul_restantes>'
     - Loop rodadas:
         - 'VEZ_DICA <time>'
             - Quando Mestre fornecer dica válida: 
@@ -189,7 +189,7 @@
             - Quando Agente fornecer palpite válido: 
                 - 'JOGO chute_valido'
                 - 'REVELAR <posicao> <cor>'
-                - 'PLACAR <vermelho_restantes> <azul_restantes>'
+                - 'PLACAR <vermelha_restantes> <azul_restantes>'
             - Se errar ou acabar os palpites:
                 - 'FIM_TURNO <motivo> <proximo_time>'
             - Quando Agente passar:
@@ -219,40 +219,40 @@
 # Exemplo de uma rodada:
 
 -- Lobby --
-SERVIDOR>AGENTE_VERMELHO    CARGOS_LIVRES VERMELHO_MESTREESPIAO VERMELHO_AGENTE AZUL_MESTREESPIAO AZUL_AGENTE
-AGENTE_VERMELHO>            CARGO VERMELHO_AGENTE
-SERVIDOR>AGENTE_VERMELHO    JOGO bem_vindo VERMELHO_AGENTE
-SERVIDOR>AGENTE_AZUL        CARGOS_LIVRES VERMELHO_MESTREESPIAO AZUL_MESTREESPIAO AZUL_AGENTE
-AGENTE_AZUL>                CARGO VERMELHO_AGENTE
-SERVIDOR>AGENTE_AZUL        ERRO cargo_ocupado VERMELHO_AGENTE
+SERVIDOR>AGENTE_VERMELHA    CARGOS_LIVRES VERMELHA_MESTREESPIAO VERMELHA_AGENTE AZUL_MESTREESPIAO AZUL_AGENTE
+AGENTE_VERMELHA>            CARGO VERMELHA_AGENTE
+SERVIDOR>AGENTE_VERMELHA    JOGO bem_vindo VERMELHA_AGENTE
+SERVIDOR>AGENTE_AZUL        CARGOS_LIVRES VERMELHA_MESTREESPIAO AZUL_MESTREESPIAO AZUL_AGENTE
+AGENTE_AZUL>                CARGO VERMELHA_AGENTE
+SERVIDOR>AGENTE_AZUL        ERRO cargo_ocupado VERMELHA_AGENTE
 AGENTE_AZUL>                CARGO AZUL_AGENTE
 SERVIDOR>AGENTE_AZUL        JOGO bem_vindo AZUL_AGENTE
 
-(MESTRE_VERMELHO e MESTRE_AZUL entram do mesmo jeito, com JOGO bem_vindo para cada um)
+(MESTRE_VERMELHA e MESTRE_AZUL entram do mesmo jeito, com JOGO bem_vindo para cada um)
 
 -- Início --
 SERVIDOR>*                  JOGO iniciado
-SERVIDOR>MESTRE_VERMELHO    TABULEIRO_MESTRE 1:PIZZA:VERMELHA:0 2:JET_SKI:AZUL:0 ... 25:LUA:NEUTRA:0
+SERVIDOR>MESTRE_VERMELHA    TABULEIRO_MESTRE 1:PIZZA:VERMELHA:0 2:JET_SKI:AZUL:0 ... 25:LUA:NEUTRA:0
 SERVIDOR>MESTRE_AZUL        TABULEIRO_MESTRE 1:PIZZA:VERMELHA:0 2:JET_SKI:AZUL:0 ... 25:LUA:NEUTRA:0
-SERVIDOR>AGENTE_VERMELHO    TABULEIRO_AGENTE 1:PIZZA:?:0 2:JET_SKI:?:0 ... 25:LUA:?:0
+SERVIDOR>AGENTE_VERMELHA    TABULEIRO_AGENTE 1:PIZZA:?:0 2:JET_SKI:?:0 ... 25:LUA:?:0
 SERVIDOR>AGENTE_AZUL        TABULEIRO_AGENTE 1:PIZZA:?:0 2:JET_SKI:?:0 ... 25:LUA:?:0
 SERVIDOR>*                  PLACAR 9 8
-SERVIDOR>*                  VEZ_DICA VERMELHO
+SERVIDOR>*                  VEZ_DICA VERMELHA
 
--- Turno vermelho --
-MESTRE_VERMELHO>            DICA Itália 2
-SERVIDOR>MESTRE_VERMELHO    JOGO dica_valida
+-- Turno vermelha --
+MESTRE_VERMELHA>            DICA Itália 2
+SERVIDOR>MESTRE_VERMELHA    JOGO dica_valida
 SERVIDOR>*                  DICA_DADA ITÁLIA 2
-SERVIDOR>*                  VEZ_PALPITE VERMELHO 3
+SERVIDOR>*                  VEZ_PALPITE VERMELHA 3
 AGENTE_AZUL>                CHUTE 5
 SERVIDOR>AGENTE_AZUL        ERRO fora_de_vez
-AGENTE_VERMELHO>            CHUTE 1
-SERVIDOR>AGENTE_VERMELHO    JOGO chute_valido
+AGENTE_VERMELHA>            CHUTE 1
+SERVIDOR>AGENTE_VERMELHA    JOGO chute_valido
 SERVIDOR>*                  REVELAR 1 VERMELHA
 SERVIDOR>*                  PLACAR 8 8
-SERVIDOR>*                  VEZ_PALPITE VERMELHO 2
-AGENTE_VERMELHO>            CHUTE 5
-SERVIDOR>AGENTE_VERMELHO    JOGO chute_valido
+SERVIDOR>*                  VEZ_PALPITE VERMELHA 2
+AGENTE_VERMELHA>            CHUTE 5
+SERVIDOR>AGENTE_VERMELHA    JOGO chute_valido
 SERVIDOR>*                  REVELAR 5 NEUTRA
 SERVIDOR>*                  PLACAR 8 8
 SERVIDOR>*                  FIM_TURNO errou AZUL
@@ -267,7 +267,7 @@ AGENTE_AZUL>                CHUTE 12
 SERVIDOR>AGENTE_AZUL        JOGO chute_valido
 SERVIDOR>*                  REVELAR 12 ASSASSINA
 SERVIDOR>*                  PLACAR 8 8
-SERVIDOR>*                  VENCEDOR VERMELHO assassino
+SERVIDOR>*                  VENCEDOR VERMELHA assassino
 SERVIDOR>*                  TABULEIRO_FINAL 1:PIZZA:VERMELHA:1 2:JET_SKI:AZUL:0 ... 25:LUA:NEUTRA:0
 SERVIDOR>*                  JOGO encerrado
 
@@ -302,7 +302,7 @@ sequenceDiagram
     Note over J,S: INICIO (os 4 cargos ocupados)
     S-->>J: JOGO iniciado
     S-->>J: TABULEIRO_MESTRE (mestres) e TABULEIRO_AGENTE (agentes)
-    S-->>J: PLACAR vermelho azul
+    S-->>J: PLACAR vermelha azul
 
     Note over J,S: RODADAS (repete ate haver um vencedor)
     loop a cada turno
@@ -318,7 +318,7 @@ sequenceDiagram
                     alt chute valido
                         S-->>A: JOGO chute_valido
                         S-->>J: REVELAR posicao cor
-                        S-->>J: PLACAR vermelho azul
+                        S-->>J: PLACAR vermelha azul
                         alt acertou e ainda ha palpites
                             S-->>J: VEZ_PALPITE time palpites_restantes
                         else neutra, adversaria ou sem palpites

@@ -107,7 +107,7 @@ public class Partida {
         //1. se for a carta assassina
         if(corRevelada == CorCarta.ASSASSINA){
             CorCarta timeVencedor = (timeDaVez == CorCarta.VERMELHA) ? CorCarta.AZUL : CorCarta.VERMELHA; // seleciona o outro time como campeao
-            finalizarJogo(timeVencedor, Protocolo.MotivoVencedor.ASSASSINO);
+            finalizarJogo(timeVencedor, Protocolo.MotivoVencedor.ASSASSINA);
             eventos.add(new Evento.FimDeJogo(vencedor, motivoFim));
             return Resultado.sucesso(eventos);
         }
