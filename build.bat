@@ -8,32 +8,30 @@ rem  - https://learn.microsoft.com/windows-server/administration/windows-command
 rem  - https://learn.microsoft.com/windows-server/administration/windows-commands/call
 setlocal enabledelayedexpansion
 
-rem trabalha sempre a partir da raiz do repositorio
-cd /d "%~dp0"
+@echo off
 
-where javac >nul 2>nul
-if errorlevel 1 (
-  echo javac nao encontrado. Instale o JDK ^(nao basta o JRE^). 1>&2
-  exit /b 1
+REM Cria a pasta out caso ela não exista
+IF NOT EXIST out mkdir out
+
+IF "%1"=="test" (
+    echo A compilar o projeto e as classes de teste...
+    dir /s /b src\*.java test\*.java > sources.txt
+    javac -d out @sources.txt
+    del sources.txt
+    
+    REM Copia a pasta resources para a pasta out de forma silenciosa (>nul)
+    xcopy resources out\resources /E /I /Y >nul
+    
+    echo --- A executar os Testes ---
+    java -cp out GeradorTabuleiroTeste
+    java -cp out PartidaTeste
+
+) ELSE (
+    echo A compilar apenas o codigo fonte principal...
+    dir /s /b src\*.java > sources.txt
+    javac -d out @sources.txt
+    del sources.txt
+    
+    REM Copia a pasta resources para a pasta out
+    xcopy resources out\resources /E /I /Y >nul
 )
-
-if exist out rmdir /s /q out
-if exist fontes.tmp del fontes.tmp
-
-rem Um .java por linha, entre aspas (caminhos com espaco). As barras invertidas viram
-rem barras normais porque, dentro de aspas, o javac trata "\" como escape.
-for /r src %%f in (*.java) do (
-  set "caminho=%%f"
-  echo "!caminho:\=/!">>fontes.tmp
-)
-for /r resources %%f in (*.java) do (
-  set "caminho=%%f"
-  echo "!caminho:\=/!">>fontes.tmp
-)
-
-javac -encoding UTF-8 -d out @fontes.tmp
-set "erro=%ERRORLEVEL%"
-del fontes.tmp
-if not "%erro%"=="0" exit /b %erro%
-
-echo Build ok -^> out\

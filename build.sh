@@ -7,19 +7,23 @@
 set -e
 
 # trabalha sempre a partir da raiz do repositório (onde o script está)
-cd "$(dirname "$0")"
 
-command -v javac >/dev/null 2>&1 || {
-  echo "javac não encontrado. Instale o JDK (não basta o JRE)." >&2
-  exit 1
-}
+mkdir -p out
 
-# lista temporária com um arquivo .java por linha, entre aspas (caminhos com espaço)
-lista="$(mktemp)"
-trap 'rm -f "$lista"' EXIT
-find src resources -name '*.java' | sed 's/.*/"&"/' > "$lista"
-
-rm -rf out
-javac -encoding UTF-8 -d out @"$lista"
-
-echo "Build ok -> out/"
+if [ "$1" = "test" ]; then
+    echo "A compilar o projeto e as classes de teste..."
+    javac -d out $(find src test -name "*.java")
+    
+    # Copia a pasta resources para a pasta out
+    cp -r resources out/
+    
+    echo "--- A executar os Testes ---"
+    java -cp out GeradorTabuleiroTeste
+    java -cp out PartidaTeste
+else
+    echo "A compilar apenas o código fonte principal..."
+    javac -d out $(find src -name "*.java")
+    
+    # Copia a pasta resources para a pasta out
+    cp -r resources out/
+fi

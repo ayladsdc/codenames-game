@@ -57,6 +57,8 @@ public class Partida {
             return Resultado.erro(Protocolo.Erro.DICA_INVALIDA);
         }
 
+        
+
         fase = Fase.AGUARDANDO_PALPITE;
         palpitesRestantes = numero + 1;
 

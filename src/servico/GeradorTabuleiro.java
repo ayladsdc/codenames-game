@@ -53,13 +53,21 @@ public class GeradorTabuleiro {
     }
 
     public List<Carta> gerarTabuleiro(CorCarta timeInicio, CorCarta outroTime){
-        //InputStream pacotePalavras = GeradorTabuleiro.class.getResourceAsStream("/resources/palavras.txt");
+
         InputStream input = getClass().getResourceAsStream("/resources/palavras.txt"); // ou "palavras.txt" consoante a estrutura
-        Scanner lista = new Scanner(Objects.requireNonNull(input, "Ficheiro de palavras nao encontrado!"));
-        //Scanner lista = new Scanner(pacotePalavras, "UTF-8");
+        
+        if (input == null){
+            throw new IllegalStateException("Erro: Arquivo palavras.txt não encontrado");
+        }
+
+        Scanner lista = new Scanner(input, "UTF-8");
         List<String> listaProcessada = scanearPacote(lista);
+
+        if (listaProcessada.size() < 25){
+            throw new IllegalStateException("Erro: O arquivo palavras.txt deve ter no mínimo 25 palavras. Encontradas: " + listaProcessada.size());
+        }
+
         List<Carta> tabuleiro = embaralharLista(listaProcessada, timeInicio, outroTime);
-    
         return tabuleiro;
     }
 }
