@@ -10,7 +10,5 @@ public record CartaVisivel(int posicao, String palavra, CorCarta cor, boolean re
         return new CartaVisivel(carta.getPosicao(), carta.getPalavra(), cor, carta.estaRevelada());
     }
 
-    public boolean corOculta() {
-        return cor == null;
-    }
+    public boolean corOculta() {return cor == null;}
 }

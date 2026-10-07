@@ -23,7 +23,8 @@ public class Player {
     public Player(Socket socket) throws IOException{
         this.socket = socket;
         this.in = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
-        this.out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8), true);    }
+        this.out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8), true);
+    }
 
     public Socket getSocket() {return socket;}
     public Cargo getCargo() {return cargo;}

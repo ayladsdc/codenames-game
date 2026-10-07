@@ -1,10 +1,10 @@
 package objetos_comuns;
 
 public class Carta {
+    private boolean revelada;
     private String palavra;
     private CorCarta cor;
     private int posicao;
-    private boolean revelada;
 
     public Carta(String palavra, CorCarta cor, int posicao){
         this.palavra = palavra;
@@ -13,23 +13,9 @@ public class Carta {
         this.revelada = false;
     }
 
-    public String getPalavra() {
-        return palavra;
-    }
-
-    public CorCarta getCor() {
-        return cor;
-    }
-
-    public int getPosicao(){
-        return posicao;
-    }
-
-    public boolean estaRevelada() {
-        return revelada;
-    }
-
-    public void revelar() {
-        this.revelada = true;
-    }
+    public boolean estaRevelada()   {return revelada;}
+    public String getPalavra()      {return palavra;}
+    public CorCarta getCor()        {return cor;}
+    public int getPosicao()         {return posicao;}
+    public void revelar()           {this.revelada = true;}
 }

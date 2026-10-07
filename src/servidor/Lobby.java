@@ -7,12 +7,18 @@ import java.net.ServerSocket; import java.net.Socket;
 import java.util.ArrayList; import java.util.Arrays;
 import java.util.EnumMap; import java.util.Map;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.net.SocketTimeoutException;
 
 public class Lobby {
     private final ServerSocket server;
+    private volatile boolean jogoComecou = false;
     private final Map<Cargo, Player> players = new EnumMap<>(Cargo.class);
     private final List<Cargo> disponivel = new ArrayList<>(Arrays.asList(Cargo.values()));
     private final List<Player> todosConectados = new ArrayList<>();
+    
+    // threads que cuidam de cada cliente no lobby (negociar cargo + vigiar até o jogo começar)
+    private final List<Thread> threadsJogadores = new CopyOnWriteArrayList<>();
 
     public Lobby(ServerSocket server) {this.server = server;}
 
@@ -34,10 +40,12 @@ public class Lobby {
                         todosConectados.add(player);
                         enviarCargosLivres(player);
                     }
-                    
+
                     // Inicia uma thread exclusiva para o novo cliente negociar o seu cargo
-                    new Thread(() -> lidarComPlayer(player)).start();
-                    
+                    Thread threadDoPlayer = new Thread(() -> lidarComPlayer(player));
+                    threadsJogadores.add(threadDoPlayer);
+                    threadDoPlayer.start();
+
                 } catch (IOException e) {
                     break; // O server principal foi fechado, encerra a thread
                 }
@@ -55,6 +63,20 @@ public class Lobby {
                     Thread.currentThread().interrupt();
                 }
             }
+            jogoComecou = true;
+        }
+
+        // Espera as threads de vigia terminarem (elas devolvem o socket "limpo", sem timeout).
+        // Sem isso, as threads leitoras do jogo poderiam disputar o mesmo BufferedReader com a vigia,
+        // ou pegar um SocketTimeoutException de 200ms e achar que o jogador caiu.
+        // Fica FORA do synchronized, porque desconectar() também é synchronized (evita deadlock).
+        for (Thread t : threadsJogadores) {
+            try {
+                t.join();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
         }
 
         return players; // Devolve o Map pronto para o ServidorCodenames
@@ -62,11 +84,12 @@ public class Lobby {
 
     private void lidarComPlayer(Player player) {
         try {
-            while (true) {
+            boolean escolheu = false;
+            while (!escolheu) {
                 String linha = player.recebe();
                 if (linha == null) {
                     desconectar(player);
-                    break;
+                    return;
                 }
 
                 String[] partes = linha.trim().split("\\s+", 2);
@@ -104,7 +127,8 @@ public class Lobby {
                             if (players.size() == 4) {
                                 notifyAll();
                             }
-                            break; // Quebra o loop para este jogador (espera acabar na main)
+                            escolheu = true;
+                            // Quebra o loop para este jogador (espera acabar na main)
                         }
                     }
                 } else {
@@ -113,6 +137,35 @@ public class Lobby {
             }
         } catch (IOException e) {
             desconectar(player);
+            return; // já desconectou, não tem o que vigiar
+        }
+
+        vigiarAposEscolha(player);
+    }
+
+    private void vigiarAposEscolha(Player player) {
+        try {
+            player.getSocket().setSoTimeout(200); // so um "tick" de verificacao
+            while (!jogoComecou) {
+                try {
+                    String linha = player.recebe();
+                    if (linha == null) {
+                        desconectar(player);
+                        return;
+                    }
+                    // qualquer coisa enviada nesse meio tempo e ignorada
+                } catch (SocketTimeoutException e) {
+                    // normal: ninguem mandou nada nesses 200ms, continua conectado
+                }
+            }
+        } catch (IOException e) {
+            desconectar(player);
+            return;
+        } finally {
+            try {
+                player.getSocket().setSoTimeout(0); // devolve o socket "limpo" pro jogo usar
+            } catch (IOException ignored) {
+            }
         }
     }
 

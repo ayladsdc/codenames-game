@@ -49,62 +49,62 @@ public class Protocolo {
 
     public static class Cliente {
         public static final String CARGO = "CARGO";
-        public static final String DICA  = "DICA";
         public static final String CHUTE = "CHUTE";
         public static final String PASSA = "PASSA";
+        public static final String DICA  = "DICA";
     }
 
     public static class Servidor {
-        public static final String INFO = "INFO";
-        public static final String JOGO = "JOGO";
-        public static final String CARGOS_LIVRES = "CARGOS_LIVRES";
         public static final String TABULEIRO_AGENTE = "TABULEIRO_AGENTE";
         public static final String TABULEIRO_MESTRE = "TABULEIRO_MESTRE";
         public static final String TABULEIRO_FINAL = "TABULEIRO_FINAL";
-        public static final String PLACAR = "PLACAR";
-        public static final String VEZ_DICA = "VEZ_DICA";
-        public static final String DICA_DADA = "DICA_DADA";
+        public static final String CARGOS_LIVRES = "CARGOS_LIVRES";
         public static final String VEZ_PALPITE = "VEZ_PALPITE";
-        public static final String REVELAR = "REVELAR";
         public static final String FIM_TURNO = "FIM_TURNO";
+        public static final String DICA_DADA = "DICA_DADA";
+        public static final String VEZ_DICA = "VEZ_DICA";
         public static final String VENCEDOR = "VENCEDOR";
+        public static final String REVELAR = "REVELAR";
+        public static final String PLACAR = "PLACAR";
+        public static final String JOGO = "JOGO";
         public static final String ERRO = "ERRO";
+        public static final String INFO = "INFO";
     }
 
     // Segundo termo da mensagem 'JOGO <estado>'
     public static class Jogo {
-        public static final String BEM_VINDO = "bem_vindo";        // sucesso de CARGO (JOGO bem_vindo <cargo>)
-        public static final String INICIADO = "iniciado";
-        public static final String ENCERRADO = "encerrado";
-        public static final String DICA_VALIDA = "dica_valida";    // sucesso de DICA
         public static final String CHUTE_VALIDO = "chute_valido";  // sucesso de CHUTE
         public static final String PASSA_VALIDA = "passa_valida";  // sucesso de PASSA
+        public static final String DICA_VALIDA = "dica_valida";    // sucesso de DICA
+        public static final String BEM_VINDO = "bem_vindo";        // sucesso de CARGO (JOGO bem_vindo <cargo>)
+        public static final String ENCERRADO = "encerrado";
+        public static final String INICIADO = "iniciado";
     }
 
     // Motivo de 'ERRO <motivo>'
     public static class Erro {
-        public static final String PARTIDA_CHEIA = "partida_cheia";
-        public static final String LINHA_VAZIA = "linha_vazia";
-        public static final String LINHA_LONGA = "linha_longa";
         public static final String COMANDO_DESCONHECIDO = "comando_desconhecido";
         public static final String ARGUMENTOS_INVALIDOS = "argumentos_invalidos";
-        public static final String CARGO_INVALIDO = "cargo_invalido";
-        public static final String CARGO_OCUPADO = "cargo_ocupado";       // ERRO cargo_ocupado <cargo>
         public static final String CARGO_JA_ESCOLHIDO = "cargo_ja_escolhido";
-        public static final String FORA_DE_HORA = "fora_de_hora";
-        public static final String FORA_DE_VEZ = "fora_de_vez";
-        public static final String PAPEL_INVALIDO = "papel_invalido";
-        public static final String POSICAO_INVALIDA = "posicao_invalida";
         public static final String CARTA_JA_REVELADA = "carta_ja_revelada";
-        public static final String DICA_INVALIDA = "dica_invalida";
+        public static final String POSICAO_INVALIDA = "posicao_invalida";
         public static final String NUMERO_INVALIDO = "numero_invalido";
+        public static final String CARGO_INVALIDO = "cargo_invalido";
+        public static final String PAPEL_INVALIDO = "papel_invalido";
+        public static final String CARGO_OCUPADO = "cargo_ocupado";       // ERRO cargo_ocupado <cargo>
+        public static final String PARTIDA_CHEIA = "partida_cheia";
+        public static final String DICA_INVALIDA = "dica_invalida";
+        public static final String FORA_DE_HORA = "fora_de_hora";
+        public static final String LINHA_VAZIA = "linha_vazia";
+        public static final String LINHA_LONGA = "linha_longa";
+        public static final String FORA_DE_VEZ = "fora_de_vez";
     }
 
     // Motivo de 'FIM_TURNO <motivo> <proximo_time>'
     public static class MotivoFimTurno {
-        public static final String ERROU = "errou";
-        public static final String PASSOU = "passou";
         public static final String SEM_PALPITES = "sem_palpites";
+        public static final String PASSOU = "passou";
+        public static final String ERROU = "errou";
     }
 
     // Motivo de 'VENCEDOR <time> <motivo>'
@@ -116,10 +116,10 @@ public class Protocolo {
     // Cor da carta como aparece nas mensagens (o enum CorCarta usa VERMELHA e ASSASSINA,
     // a conversão entre os dois fica na classe Mensagem)
     public static class Cor {
-        public static final String VERMELHA = "VERMELHA";
-        public static final String AZUL = "AZUL";
-        public static final String NEUTRA = "NEUTRA";
         public static final String ASSASSINA = "ASSASSINA";
+        public static final String VERMELHA = "VERMELHA";
+        public static final String NEUTRA = "NEUTRA";
+        public static final String AZUL = "AZUL";
     }
 
     // Time como aparece nas mensagens (mesmo prefixo dos cargos)

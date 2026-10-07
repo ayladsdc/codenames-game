@@ -12,8 +12,6 @@ public class CodificadorTabuleiro {
 
     private CodificadorTabuleiro(){}
 
-    // ------------------------------------------------------------------ codificar
-
     // visaoMestre = true  -> mostra a cor de todas as cartas
     // visaoMestre = false -> só mostra a cor das cartas já reveladas
     public static List<String> codificar(Tabuleiro tabuleiro, boolean visaoMestre) {
@@ -40,8 +38,6 @@ public class CodificadorTabuleiro {
         return c.posicao() + sep + c.palavra().replace(' ', '_') + sep + cor + sep + revelada;
     }
 
-    // ------------------------------------------------------------------ decodificar
-
     // Se alguma carta estiver malformada, lança IllegalArgumentException.
     public static List<CartaVisivel> decodificar(List<String> textos) {
         if (textos.size() != Tabuleiro.getTamanhotabuleiro()) {
@@ -53,9 +49,8 @@ public class CodificadorTabuleiro {
             CartaVisivel carta = decodificarCarta(textos.get(i));
 
             // as cartas vêm em ordem de posição (1 a 25)
-            if (carta.posicao() != i + 1) {
-                throw new IllegalArgumentException("Carta fora de ordem: esperava " + (i + 1) + ", veio " + carta.posicao());
-            }
+            if (carta.posicao() != i + 1) throw new IllegalArgumentException("Carta fora de ordem: esperava " + (i + 1) + ", veio " + carta.posicao());
+            
             cartas.add(carta);
         }
         return cartas;
@@ -63,9 +58,7 @@ public class CodificadorTabuleiro {
 
     private static CartaVisivel decodificarCarta(String texto) {
         String[] campos = texto.split(Protocolo.SEPARADOR_CAMPOS_CARTA, -1); // -1: não joga fora campo vazio no fim
-        if (campos.length != 4) {
-            throw new IllegalArgumentException("Carta malformada: '" + texto + "'");
-        }
+        if (campos.length != 4) throw new IllegalArgumentException("Carta malformada: '" + texto + "'");
 
         int posicao;
         try {
@@ -75,14 +68,10 @@ public class CodificadorTabuleiro {
         }
 
         String palavra = campos[1].replace('_', ' ');
-        if (palavra.isBlank()) {
-            throw new IllegalArgumentException("Carta sem palavra: '" + texto + "'");
-        }
+        if (palavra.isBlank()) throw new IllegalArgumentException("Carta sem palavra: '" + texto + "'");
 
         CorCarta cor = null; // '?' = oculta
-        if (!campos[2].equals(Protocolo.CARTA_OCULTA)) {
-            cor = ConversorProtocolo.corDoProtocolo(campos[2]);
-        }
+        if (!campos[2].equals(Protocolo.CARTA_OCULTA)) cor = ConversorProtocolo.corDoProtocolo(campos[2]);
 
         boolean revelada;
         if (campos[3].equals(CARTA_REVELADA))          revelada = true;

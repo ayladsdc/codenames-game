@@ -18,8 +18,6 @@ public class ConversorProtocolo {
         return nomeTime(cargo.time()) + "_" + tipo;
     }
 
-    public static String corParaProtocolo(CorCarta cor) {return cor.name();}
-
-    //se não for nenhuma das 4 cores, o valueOf lança IllegalArgumentException
-    public static CorCarta corDoProtocolo(String valor) {return CorCarta.valueOf(valor);}
+    public static String corParaProtocolo(CorCarta cor)     {return cor.name();}
+    public static CorCarta corDoProtocolo(String valor)     {return CorCarta.valueOf(valor);}
 }

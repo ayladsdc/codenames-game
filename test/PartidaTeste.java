@@ -13,7 +13,7 @@ public class PartidaTeste {
         Tabuleiro tab = new Tabuleiro(); 
         Partida partida = new Partida(tab);
 
-        // 1. Vamos descobrir UMA palavra que está oculta neste tabuleiro
+        // 1. descobrir UMA palavra que está oculta neste tabuleiro
         String palavraNoTabuleiro = "";
         InputStream input = PartidaTeste.class.getResourceAsStream("/resources/palavras.txt");
         

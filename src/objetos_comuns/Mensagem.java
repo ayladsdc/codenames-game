@@ -27,7 +27,6 @@ public class Mensagem {
             comando = Protocolo.Servidor.INFO;
             args = List.of((linhaTrim.substring(linhaTrim.indexOf(" ")).trim())); //trim para o caso "INFO         textinhoblablabla"
         } else {
-
             List<String> partes = Arrays.asList(linhaTrim.split("\\s+")); // "\\s+ é um ou mais espaços"
 
             comando = partes.get(0);
@@ -69,14 +68,13 @@ public class Mensagem {
 
         for (String a : args) {
             if (a == null || a.isEmpty()) {
-                throw new IllegalArgumentException("Argumento vazio em " + comando);
-            }
+                throw new IllegalArgumentException("Argumento vazio em " + comando);}
+
             if (a.contains("\n") || a.contains("\r")) { // quebra de linha viraria DUAS mensagens
-                throw new IllegalArgumentException("Argumento com quebra de linha em " + comando);
-            }
+                throw new IllegalArgumentException("Argumento com quebra de linha em " + comando);}
+
             if (!textoLivre && a.contains(" ")) {
-                throw new IllegalArgumentException("Argumento com espaço em " + comando + ": '" + a + "'");
-            }
+                throw new IllegalArgumentException("Argumento com espaço em " + comando + ": '" + a + "'");}
         }
         return new Mensagem(comando, args);
     }
@@ -129,11 +127,11 @@ public class Mensagem {
     public static Mensagem jogo(String estado)                  {return criarMensagem(Protocolo.Servidor.JOGO, estado);}
     public static Mensagem bemVindo(Cargo cargo)                {return criarMensagem(Protocolo.Servidor.JOGO, Protocolo.Jogo.BEM_VINDO, ConversorProtocolo.nomeCargo(cargo));}
 
-    public static Mensagem jogoIniciado()  { return jogo(Protocolo.Jogo.INICIADO); }
-    public static Mensagem jogoEncerrado() { return jogo(Protocolo.Jogo.ENCERRADO); }
-    public static Mensagem dicaValida()    { return jogo(Protocolo.Jogo.DICA_VALIDA); }
-    public static Mensagem chuteValido()   { return jogo(Protocolo.Jogo.CHUTE_VALIDO); }
-    public static Mensagem passaValida()   { return jogo(Protocolo.Jogo.PASSA_VALIDA); }
+    public static Mensagem jogoIniciado()                       { return jogo(Protocolo.Jogo.INICIADO); }
+    public static Mensagem jogoEncerrado()                      { return jogo(Protocolo.Jogo.ENCERRADO); }
+    public static Mensagem dicaValida()                         { return jogo(Protocolo.Jogo.DICA_VALIDA); }
+    public static Mensagem chuteValido()                        { return jogo(Protocolo.Jogo.CHUTE_VALIDO); }
+    public static Mensagem passaValida()                        { return jogo(Protocolo.Jogo.PASSA_VALIDA); }
 
     public static Mensagem cargosLivres(List<Cargo> livres) {
         List<String> nomes = new ArrayList<>();
