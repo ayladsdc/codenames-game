@@ -1,6 +1,6 @@
 package servidor;
 
-import objetos_comuns.Cargo; import objetos_comuns.Protocolo;
+import objetos_comuns.Cargo; import objetos_comuns.Protocolo; import objetos_comuns.Mensagem;
 
 import java.io.IOException;
 import java.net.ServerSocket; import java.net.Socket;
@@ -26,17 +26,19 @@ public class Lobby {
         // Thread assíncrona só para aceitar clientes, permitindo que vários negociem ao mesmo tempo
         Thread threadAceitadora = new Thread(() -> {
             while (true) {
+                Socket socket = null;                       // declare ANTES do try
                 try {
-                    Socket socket = server.accept();
+                    socket = server.accept();
                     Player player = new Player(socket);
 
                     synchronized (Lobby.this) {
-                        // Rejeita a 5ª conexão em diante, fechando-a imediatamente
+
                         if (todosConectados.size() >= 4) {
-                            player.enviar(Protocolo.Servidor.ERRO + " partida_cheia");
+                            player.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.PARTIDA_CHEIA);
                             player.Fechar();
                             continue;
                         }
+                        
                         todosConectados.add(player);
                         enviarCargosLivres(player);
                     }
@@ -47,7 +49,11 @@ public class Lobby {
                     threadDoPlayer.start();
 
                 } catch (IOException e) {
-                    break; // O server principal foi fechado, encerra a thread
+                    if (server.isClosed()) break;           // servidor fechou: encerra a thread
+                    // falha só nessa conexão (cliente caiu na hora etc.): fecha ela e segue aceitando
+                    if (socket != null) {
+                        try { socket.close(); } catch (IOException ignored) {}
+                    }
                 }
             }
         });
@@ -84,89 +90,90 @@ public class Lobby {
 
     private void lidarComPlayer(Player player) {
         try {
-            boolean escolheu = false;
-            while (!escolheu) {
-                String linha = player.recebe();
+            player.getSocket().setSoTimeout(200); // "tick" só para conferir se o jogo já começou
+            while (!jogoComecou) {
+                String linha;
+                try {
+                    linha = player.recebe();
+                } catch (SocketTimeoutException e) {
+                    continue; // ninguém mandou nada nesses 200ms
+                }
                 if (linha == null) {
                     desconectar(player);
                     return;
                 }
-
-                String[] partes = linha.trim().split("\\s+", 2);
-                if (partes[0].equalsIgnoreCase(Protocolo.Cliente.CARGO)) {
-                    Cargo requisitado = null;
-                    if (partes.length == 2) {
-                        try {
-                            requisitado = Cargo.valueOf(partes[1].toUpperCase());
-                        } catch (IllegalArgumentException e) {
-                            // Deixa null intencionalmente para acionar erro de cargo_invalido
-                        }
-                    }
-
-                    // Bloco para evitar condição de corrida entre os clientes
-                    synchronized (this) {
-                        if (requisitado == null) {
-                            player.enviar(Protocolo.Servidor.ERRO + " cargo_invalido");
-                        } else if (player.getCargo() != null) {
-                            player.enviar(Protocolo.Servidor.ERRO + " cargo_ja_escolhido");
-                        } else if (!disponivel.contains(requisitado)) {
-                            player.enviar(Protocolo.Servidor.ERRO + " cargo_ocupado " + requisitado.name());
-                        } else {
-                            // SUCESSO
-                            player.setCargo(requisitado);
-                            disponivel.remove(requisitado);
-                            players.put(requisitado, player);
-
-                            player.enviar(Protocolo.Servidor.JOGO + " " + Protocolo.Jogo.BEM_VINDO + " " + requisitado.name());
-                            System.out.println(requisitado + " conectado (" + players.size() + "/4).");
-
-                            broadcast(Protocolo.Servidor.INFO + " " + players.size() + "/4 jogadores");
-                            broadcastCargosLivres();
-
-                            // Acorda a thread principal caso seja o último jogador
-                            if (players.size() == 4) {
-                                notifyAll();
-                            }
-                            escolheu = true;
-                            // Quebra o loop para este jogador (espera acabar na main)
-                        }
-                    }
-                } else {
-                    player.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.COMANDO_DESCONHECIDO);
-                }
+                tratarLinha(player, linha);
             }
         } catch (IOException e) {
-            desconectar(player);
-            return; // já desconectou, não tem o que vigiar
-        }
-
-        vigiarAposEscolha(player);
-    }
-
-    private void vigiarAposEscolha(Player player) {
-        try {
-            player.getSocket().setSoTimeout(200); // so um "tick" de verificacao
-            while (!jogoComecou) {
-                try {
-                    String linha = player.recebe();
-                    if (linha == null) {
-                        desconectar(player);
-                        return;
-                    }
-                    // qualquer coisa enviada nesse meio tempo e ignorada
-                } catch (SocketTimeoutException e) {
-                    // normal: ninguem mandou nada nesses 200ms, continua conectado
-                }
-            }
-        } catch (IOException e) {
-            desconectar(player);
-            return;
+            desconectar(player); // Ctrl+C / conexão resetada
         } finally {
             try {
                 player.getSocket().setSoTimeout(0); // devolve o socket "limpo" pro jogo usar
             } catch (IOException ignored) {
             }
         }
+    }
+
+    /** Mesma ordem de erros do PROTOCOLO.md: vazia/longa, desconhecido, fora_de_hora, argumentos, específicos. */
+    private void tratarLinha(Player player, String linha) {
+        if (linha.length() > Protocolo.TAMANHO_MAXIMO_LINHA) { erro(player, Protocolo.Erro.LINHA_LONGA); return; }
+        linha = linha.trim();
+        if (linha.isEmpty()) { erro(player, Protocolo.Erro.LINHA_VAZIA); return; }
+
+        Mensagem msg = Mensagem.parse(linha);
+        String comando = msg.getComando();
+
+        // comandos do jogo no lobby: existem, mas ainda não é a hora
+        if (comando.equals(Protocolo.Cliente.DICA) || comando.equals(Protocolo.Cliente.CHUTE)
+                || comando.equals(Protocolo.Cliente.PASSA)) {
+            erro(player, Protocolo.Erro.FORA_DE_HORA);
+            return;
+        }
+        if (!comando.equals(Protocolo.Cliente.CARGO)) {
+            erro(player, Protocolo.Erro.COMANDO_DESCONHECIDO);
+            return;
+        }
+        if (msg.getArgs().size() != 1) {
+            erro(player, Protocolo.Erro.ARGUMENTOS_INVALIDOS);
+            return;
+        }
+
+        Cargo requisitado = null;
+        try {
+            requisitado = Cargo.valueOf(msg.getArgs().get(0)); // sem toUpperCase: só maiúsculas valem
+        } catch (IllegalArgumentException e) {
+            // fica null e cai em cargo_invalido
+        }
+
+        // Bloco para evitar condição de corrida entre os clientes
+        synchronized (this) {
+            if (requisitado == null) {
+                erro(player, Protocolo.Erro.CARGO_INVALIDO);
+            } else if (player.getCargo() != null) {
+                erro(player, Protocolo.Erro.CARGO_JA_ESCOLHIDO);
+            } else if (!disponivel.contains(requisitado)) {
+                erro(player, Protocolo.Erro.CARGO_OCUPADO + " " + requisitado.name());
+            } else {
+                // SUCESSO (igual ao que já tinha, só sem a variável "escolheu")
+                player.setCargo(requisitado);
+                disponivel.remove(requisitado);
+                players.put(requisitado, player);
+
+                player.enviar(Protocolo.Servidor.JOGO + " " + Protocolo.Jogo.BEM_VINDO + " " + requisitado.name());
+                System.out.println(requisitado + " conectado (" + players.size() + "/4).");
+
+                broadcast(Protocolo.Servidor.INFO + " " + players.size() + "/4 jogadores");
+                broadcastCargosLivres();
+
+                if (players.size() == 4) {
+                    notifyAll(); // acorda a thread principal
+                }
+            }
+        }
+    }
+
+    private void erro(Player player, String motivo) {
+        player.enviar(Protocolo.Servidor.ERRO + " " + motivo);
     }
 
     private synchronized void enviarCargosLivres(Player p) {

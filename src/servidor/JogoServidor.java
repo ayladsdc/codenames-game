@@ -46,6 +46,7 @@ public class JogoServidor {
         broadcast(Protocolo.Servidor.JOGO + " " + Protocolo.Jogo.INICIADO);
         this.tabuleiro = new Tabuleiro();
         enviaTabuleiros();
+        broadcastPlacar(); // placar inicial, logo depois dos tabuleiros (depois só muda com REVELAR)
         this.partida = new Partida(tabuleiro);
 
         // Inicia as 4 threads leitoras (uma por jogador) para a fila central
@@ -90,23 +91,44 @@ public class JogoServidor {
                 break;
             }
 
+            if (cmd.linha.length() > Protocolo.TAMANHO_MAXIMO_LINHA) {
+                cmd.autor.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.LINHA_LONGA);
+                continue;
+            }
             String linha = cmd.linha.trim();
             if (linha.isEmpty()) {
                 cmd.autor.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.LINHA_VAZIA);
-                continue;
-            }
-            if (linha.length() > Protocolo.TAMANHO_MAXIMO_LINHA) {
-                cmd.autor.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.LINHA_LONGA);
                 continue;
             }
 
             Mensagem msg = Mensagem.parse(linha);
             if (msg.vazia()) continue;
 
-            if (partida.getFase() == Fase.AGUARDANDO_DICA) {
-                processarTurnoDica(cmd, msg);
-            } else {
-                processarTurnoPalpite(cmd, msg);
+            try {
+                String comando = msg.getComando();
+                boolean ehDica = comando.equals(Protocolo.Cliente.DICA);
+                boolean ehPalpite = comando.equals(Protocolo.Cliente.CHUTE) || comando.equals(Protocolo.Cliente.PASSA);
+
+                // comando_desconhecido: minúsculas, REVELAR, INFO e qualquer coisa que o cliente não envia
+                if (!ehDica && !ehPalpite && !comando.equals(Protocolo.Cliente.CARGO)) {
+                    cmd.autor.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.COMANDO_DESCONHECIDO);
+                    continue;
+                }
+
+                // fora_de_hora, papel_invalido, fora_de_vez
+                String erro = erroDePermissao(cmd.autor.getCargo(), comando);
+                if (erro != null) {
+                    cmd.autor.enviar(Protocolo.Servidor.ERRO + " " + erro);
+                    continue;
+                }
+
+                if (ehDica) processarTurnoDica(cmd, msg);
+                else processarTurnoPalpite(cmd, msg);
+
+            } catch (RuntimeException e) {
+                // nenhuma entrada estranha pode derrubar o servidor
+                System.out.println("Erro inesperado com '" + linha + "' de " + cmd.autor.getCargo() + ": " + e);
+                cmd.autor.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.ARGUMENTOS_INVALIDOS);
             }
         }
 
@@ -123,12 +145,26 @@ public class JogoServidor {
         desconectarTodos();
     }
 
-    private void processarTurnoDica(Comando cmd, Mensagem msg) {
-        if (!msg.getComando().equalsIgnoreCase(Protocolo.Cliente.DICA)) {
-            cmd.autor.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.COMANDO_DESCONHECIDO);
-            return;
+    /** erros de fase/papel/vez. retorna null se o comando pode ser executado agora. */
+    private String erroDePermissao(Cargo cargo, String comando) {
+        Fase fase = partida.getFase();
+        if (fase == Fase.FIM_DE_JOGO || fase == Fase.JOGO_NAO_INICIADO || comando.equals(Protocolo.Cliente.CARGO)) {   // CARGO só vale no lobby
+            return Protocolo.Erro.FORA_DE_HORA;
         }
 
+        boolean ehDica = comando.equals(Protocolo.Cliente.DICA);
+        if (cargo.eMestreEspiao() != ehDica) {                  // mestre só dá dica, agente só chuta/passa
+            return Protocolo.Erro.PAPEL_INVALIDO;
+        }
+
+        Fase faseEsperada = ehDica ? Fase.AGUARDANDO_DICA : Fase.AGUARDANDO_PALPITE;
+        if (fase != faseEsperada || cargo.time() != partida.getTimeDaVez()) {
+            return Protocolo.Erro.FORA_DE_VEZ;
+        }
+        return null;
+    }
+
+    private void processarTurnoDica(Comando cmd, Mensagem msg) {
         if (msg.getArgs().size() != 2) {
             cmd.autor.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.ARGUMENTOS_INVALIDOS);
             return;
@@ -160,20 +196,24 @@ public class JogoServidor {
             }
 
         } catch (NumberFormatException e) {
-            cmd.autor.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.NUMERO_INVALIDO);
+            cmd.autor.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.ARGUMENTOS_INVALIDOS);
         }
     }
 
     private void processarTurnoPalpite(Comando cmd, Mensagem msg) {
         Resultado r = null;
         String comandoRecebido = msg.getComando();
-        boolean passou = comandoRecebido.equalsIgnoreCase(Protocolo.Cliente.PASSA);
+        boolean passou = comandoRecebido.equals(Protocolo.Cliente.PASSA);
         Cargo cargoDoAutor = cmd.autor.getCargo();
 
         if (passou) {
+            if (!msg.getArgs().isEmpty()) {
+                cmd.autor.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.ARGUMENTOS_INVALIDOS);
+                return;
+            }
             r = partida.passar(cargoDoAutor);
         }
-        else if (comandoRecebido.equalsIgnoreCase(Protocolo.Cliente.CHUTE)) {
+        else if (comandoRecebido.equals(Protocolo.Cliente.CHUTE)) {
             if (msg.getArgs().size() != 1) {
                 cmd.autor.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.ARGUMENTOS_INVALIDOS);
                 return;
@@ -183,13 +223,9 @@ public class JogoServidor {
                 int posicao = Integer.parseInt(msg.getArgs().get(0));
                 r = partida.chutar(cargoDoAutor, posicao);
             } catch (NumberFormatException e) {
-                cmd.autor.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.POSICAO_INVALIDA);
+                cmd.autor.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.ARGUMENTOS_INVALIDOS);
                 return;
             }
-        }
-        else {
-            cmd.autor.enviar(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.COMANDO_DESCONHECIDO);
-            return;
         }
 
         // Verifica se houve erro de regra
@@ -255,8 +291,8 @@ public class JogoServidor {
     private void tratarDesconexao(Player jogador) {
         System.out.println(jogador.getCargo() + " desconectou durante a partida.");
         encerradaPorDesconexao = true;
-        broadcast(Protocolo.Servidor.INFO + " Um jogador desconectou. Partida encerrada.");
-        broadcast(Protocolo.Servidor.JOGO + " " + Protocolo.Jogo.ENCERRADO);
+        broadcast(Protocolo.Servidor.INFO + Protocolo.SEPARADOR + jogador.getCargo() + " desconectou. Partida encerrada");
+        broadcast(Protocolo.Servidor.JOGO + Protocolo.SEPARADOR + Protocolo.Jogo.ENCERRADO);
         desconectarTodos();
     }
 
@@ -269,7 +305,7 @@ public class JogoServidor {
     private void broadcastPlacar() {
         int vermelha = tabuleiro.cartasRestantes(CorCarta.VERMELHA);
         int azul = tabuleiro.cartasRestantes(CorCarta.AZUL);
-        broadcast(Protocolo.Servidor.PLACAR + " " + vermelha + " " + azul);
+        broadcast(Protocolo.Servidor.PLACAR + Protocolo.SEPARADOR + vermelha + Protocolo.SEPARADOR + azul);
     }
 
     private void broadcast(String msg) {

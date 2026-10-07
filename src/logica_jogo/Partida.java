@@ -150,20 +150,4 @@ public class Partida {
 
     public Cargo cargoMestreDaVez() {return (getTimeDaVez() == CorCarta.VERMELHA) ? Cargo.VERMELHA_MESTREESPIAO : Cargo.AZUL_MESTREESPIAO;}
     public Cargo cargoAgenteDaVez() {return (getTimeDaVez() == CorCarta.VERMELHA)  ? Cargo.VERMELHA_AGENTE : Cargo.AZUL_AGENTE;}
-    
-    /* 
-    public static void main(String[] args) {
-        Tabuleiro tabuleiro = new Tabuleiro();
-        Partida partida = new Partida(tabuleiro);
-        Cargo cara; 
-        //Cargo cara = Cargo.AZUL_MESTREESPIAO;
-        if(tabuleiro.getTimeInicio()==CorCarta.AZUL)
-            cara = Cargo.AZUL_MESTREESPIAO;
-        else
-            cara = Cargo.VERMELHO_MESTREESPIAO;
-
-        Resultado r1 = partida.darDica(cara, "animal a", 1);
-        System.out.println(r1.deuSucesso() + " | fase=" + partida.getFase() + "  " + r1.getErro());
-    }
-    */
 }
