@@ -10,9 +10,7 @@ public class Tradutor {
         String[] partes = linha.split(Protocolo.SEPARADOR);
         String comando = partes[0];
 
-        if (comando.equals(Protocolo.Servidor.INFO)) {
-            return linha.substring(comando.length() + 1); // o resto da linha, já é texto livre
-        }
+        if (comando.equals(Protocolo.Servidor.INFO)) {return linha.substring(comando.length() + 1);}
         if (comando.equals(Protocolo.Servidor.JOGO)) {
             return traduzirJogo(partes);
         }
