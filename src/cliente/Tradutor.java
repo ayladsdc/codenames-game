@@ -104,6 +104,7 @@ public class Tradutor {
     }
 
     private static String traduzirErro(String[] partes) {
+        if (partes.length < 2) return "erro desconhecido";
         String motivo = partes[1];
 
         if (motivo.equals(Protocolo.Erro.PARTIDA_CHEIA)) return "a partida já está cheia";
@@ -112,15 +113,17 @@ public class Tradutor {
         if (motivo.equals(Protocolo.Erro.COMANDO_DESCONHECIDO)) return "comando desconhecido";
         if (motivo.equals(Protocolo.Erro.ARGUMENTOS_INVALIDOS)) return "argumentos inválidos";
         if (motivo.equals(Protocolo.Erro.CARGO_INVALIDO)) return "esse cargo não existe";
-        if (motivo.equals(Protocolo.Erro.CARGO_OCUPADO)) return "o cargo " + partes[2] + " já está ocupado";
         if (motivo.equals(Protocolo.Erro.CARGO_JA_ESCOLHIDO)) return "você já escolheu um cargo";
-        if (motivo.equals(Protocolo.Erro.FORA_DE_HORA)) return "o jogo ainda não começou";
         if (motivo.equals(Protocolo.Erro.FORA_DE_VEZ)) return "não é a sua vez";
-        if (motivo.equals(Protocolo.Erro.PAPEL_INVALIDO)) return "seu papel não pode fazer isso agora";
-        if (motivo.equals(Protocolo.Erro.POSICAO_INVALIDA)) return "essa posição não existe";
-        if (motivo.equals(Protocolo.Erro.CARTA_JA_REVELADA)) return "essa carta já foi revelada";
-        if (motivo.equals(Protocolo.Erro.DICA_INVALIDA)) return "essa dica não é permitida";
-        if (motivo.equals(Protocolo.Erro.NUMERO_INVALIDO)) return "número inválido";
+        if (motivo.equals(Protocolo.Erro.CARGO_OCUPADO)) return "o cargo " + (partes.length > 2 ? partes[2] : "escolhido") + " já está ocupado";
+        if (motivo.equals(Protocolo.Erro.FORA_DE_HORA)) return "esse comando não pode ser usado agora";
+        if (motivo.equals(Protocolo.Erro.PAPEL_INVALIDO)) return "o seu papel não pode fazer isso (o mestre-espião dá dicas, o agente chuta)";
+        if (motivo.equals(Protocolo.Erro.POSICAO_INVALIDA)) return "essa posição não existe (use de 1 a 25)";
+        if (motivo.equals(Protocolo.Erro.CARTA_JA_REVELADA)) return "essa carta já foi revelada, escolha outra";
+        if (motivo.equals(Protocolo.Erro.DICA_INVALIDA)) return "essa dica não é permitida (uma palavra só, só letras, e que não esteja no tabuleiro)";
+        if (motivo.equals(Protocolo.Erro.NUMERO_INVALIDO)) return "o número da dica deve ser de 1 a 9";
+
+
         return motivo;
     }
 

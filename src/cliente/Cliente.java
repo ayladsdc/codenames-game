@@ -15,6 +15,7 @@ import objetos_comuns.RenderizadorTabuleiro;
 public class Cliente {
     private static EstadoCliente estado = new EstadoCliente();
     private static FluxoLobby lobby;
+    private static FluxoTurno turno;
     private static RenderizadorTabuleiro renderizador = new RenderizadorTabuleiro(); // Adicione esta linha
     public static void main(String[] args) throws IOException {
         String host = args.length > 0 ? args[0] : "localhost";
@@ -28,6 +29,7 @@ public class Cliente {
 
             // Inicializamos o lobby passando o 'out' (para ele poder enviar o comando CARGO <NOME>)
             lobby = new FluxoLobby(out, estado);
+            turno = new FluxoTurno(out, estado, renderizador);
 
             // uma thread separada fica só  escutando o servidor e traduzindo o que chega
             Thread leitor = new Thread(() -> ouvirServidor(in));
@@ -45,54 +47,53 @@ public class Cliente {
         try {
             String linha;
             while ((linha = in.readLine()) != null) {
-               
+
                 if (linha.equals(Protocolo.Servidor.ERRO + " " + Protocolo.Erro.PARTIDA_CHEIA)) {
                     System.out.println("Erro: A partida já está cheia! (Digite 'sair' para fechar)");
                     return;
                 }
 
-            boolean lobbyIntercepta = lobby.processarMensagemServidor(linha);
+                try {
+                    if (lobby.processarMensagemServidor(linha)) continue;   // menu de cargos
+                    if (turno.processarMensagemServidor(linha)) continue;   // tabuleiro, turnos, placar, fim de jogo
 
-            if (!lobbyIntercepta) {
-                String[] partes = linha.split(" ");
-                String comando = partes[0];
+                    System.out.println(Tradutor.paraCliente(linha));         // INFO, ERRO, JOGO iniciado/encerrado...
+                } catch (RuntimeException e) {                               // linha estranha do servidor: ignora e segue
+                    System.out.println("[linha ignorada] " + linha);
+                }
 
-                if (comando.equals(Protocolo.Servidor.TABULEIRO_AGENTE) || comando.equals(Protocolo.Servidor.TABULEIRO_MESTRE) || comando.equals(Protocolo.Servidor.TABULEIRO_FINAL)) {    
-                    renderizador.guardarTabuleiro(partes);
-                            
-                    if (comando.equals(Protocolo.Servidor.TABULEIRO_FINAL)) renderizador.desenharTela();
-                            
-                    } else if (comando.equals(Protocolo.Servidor.REVELAR)) {
-                        renderizador.atualizarCarta(partes[1], partes[2]);
-                        renderizador.desenharTela();
-                            
-                    } else if (comando.equals(Protocolo.Servidor.PLACAR)) {
-                        renderizador.atualizarPlacar(partes[1], partes[2]);
-                        
-                    } else if (comando.equals(Protocolo.Servidor.VEZ_DICA) || comando.equals(Protocolo.Servidor.VEZ_PALPITE)) {
-                        renderizador.atualizarTurno(Tradutor.paraCliente(linha));
-                        renderizador.desenharTela();
-                        
-                    } else { System.out.println(Tradutor.paraCliente(linha));}
+                if (linha.equals(Protocolo.Servidor.JOGO + " " + Protocolo.Jogo.ENCERRADO)) {
+                    sairDoJogo(0);                                           // a partida acabou: fecha o cliente
                 }
             }
 
-            System.out.println(">>> Servidor encerrou a conexao. (Digite 'sair' para fechar)");
+            // o servidor fechou a conexão: se a partida já tinha acabado é um fim normal
+            System.out.println(">>> Servidor encerrou a conexao.");
+            sairDoJogo(estado.getFase() == EstadoCliente.Fase.FIM ? 0 : 1);
         } catch (IOException e) {
-            System.out.println(">>> Conexao com o servidor perdida. (Digite 'sair' para fechar)");
+            System.out.println(">>> Conexao com o servidor perdida.");
+            sairDoJogo(estado.getFase() == EstadoCliente.Fase.FIM ? 0 : 1);
         }
     }
 
+    /** Fecha o programa. A thread principal está presa esperando o teclado, então não terminaria sozinha. */
+    private static void sairDoJogo(int codigo) {
+        System.out.println("Conexão encerrada.");
+        System.exit(codigo);
+    }
+    
     private static void enviarDoTeclado(PrintWriter out) {
         Scanner teclado = new Scanner(System.in, "UTF-8");
         while (teclado.hasNextLine()) {
-            String linha = teclado.nextLine();
+            String linha = teclado.nextLine().trim();
             if (linha.isEmpty()) continue;
             if (linha.equalsIgnoreCase("sair")) break;
+            if (linha.equalsIgnoreCase("ajuda")) { turno.mostrarAjuda(); continue; }
 
-            if (!estado.temCargo()) lobby.processarEntradaTeclado(linha);   
-            else out.println(linha);
+            if (!estado.temCargo()) lobby.processarEntradaTeclado(linha);
+            else turno.processarEntradaTeclado(linha);
         }
         teclado.close();
     }
+
 }

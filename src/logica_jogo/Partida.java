@@ -37,10 +37,6 @@ public class Partida {
 
     public int getPalpitesRestantes() {return palpitesRestantes;}
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // Aqui vão ficar todas as ações que um jogador pode fazer, com todas suas exeções
-
-    /**trata a entrada no i/o no servidor msm??? */
     public Resultado darDica(Cargo jogador, String palavra, int numero){
         
         //muitas verificações

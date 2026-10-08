@@ -104,8 +104,8 @@
 - Informado de cliente -> servidor, pelo mestre do time da vez e na fase de dica
 - Estrutura: 'DICA <palavra> <numero>'
 - Exemplo: 'DICA Itália 2'
-- A palavra deve ser uma única palavra (só letras, acentos permitidos, sem '_').
-- A palavra não pode ser igual a nenhuma carta ainda oculta do tabuleiro (cartas já reveladas não contam). O mestre pode enviar a palavra em maiúsculas ou minúsculas, com ou sem acento. A comparação com as cartas ignora maiúsculas, minúsculas e acentos (ex.: 'itália' é igual a 'ITALIA'), e o servidor repassa a dica em maiúsculas, mantendo os acentos (ex.: 'ITÁLIA')
+- A palavra deve ser uma única palavra (só letras, acentos não são permitidos, sem '_').
+- A palavra não pode ser igual a nenhuma carta ainda oculta do tabuleiro (cartas já reveladas não contam). O mestre pode enviar a palavra em maiúsculas ou minúsculas, sem acentos. A comparação com as cartas ignora maiúsculas e minúsculas (ex.: 'italia' é igual a 'ITALIA'), e o servidor repassa a dica em maiúsculas (ex.: 'ITALIA')
 - O número vai de 1 a 9. O número de palpites do turno é o número da dica + 1
 - Resposta de sucesso: 'JOGO dica_valida' (só para o mestre), seguida de 'DICA_DADA' e 'VEZ_PALPITE' para todos
 - Erros:
