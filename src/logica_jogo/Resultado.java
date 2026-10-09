@@ -5,11 +5,13 @@ import java.util.Collections;
 import java.util.List;
 
 
-/** precisava explicar direitinho essa classe, pra ele n chamar de ia */
+/**  o resultado é consummido pelo servidro  e é literalmente o resultado de uma ação. 
+ * Se a jogada foi inválida, traz só o código de erro do protocolo. Se foi válida, traz
+ *  a lista de eventos que ocorreram (ex.: carta revelada, depois fim de turno).*/
 public class Resultado {
     private final boolean sucesso;
     private final String erro;
-    private final List<Evento> eventos; // processa como uma lista de eventos?????
+    private final List<Evento> eventos; 
     
     private Resultado(boolean sucesso, String erro, List<Evento> eventos){
         this.sucesso = sucesso;
